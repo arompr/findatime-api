@@ -1,0 +1,48 @@
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## .env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+## User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+.idea/
+
+## Rider
+.idea/
+
+## NuGet
+*.nupkg
+*.snupkg
+*.nupkg.metadata
+!packages/*/build/*
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Benchmark / test results
+[Bb]enchmark[s]*/
+[Tt]est[Rr]esult[s]*/
+*.nunit
+*.junit
+*.trx

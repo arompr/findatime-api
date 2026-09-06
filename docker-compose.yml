@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: findatime-postgres
+    environment:
+      POSTGRES_DB: findatime
+      POSTGRES_USER: findatime
+      POSTGRES_PASSWORD: findatime
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:
