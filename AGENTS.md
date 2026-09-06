@@ -78,13 +78,15 @@ Layering rules:
 
 ## Database
 
-- PostgreSQL 18 via Podman; local connection string in `appsettings.json`
-  (`ConnectionStrings:LocalConnection`, default `localhost:5433`, db/user/pass
-  `findatime`). Staging uses `ConnectionStrings:StagingConnection`, which has no
-  committed value; it comes from the gitignored `.env` file (loaded via
-  DotNetEnv in `Program.cs`) or from deployment env vars (Render). `Program.cs`
-  selects the key by environment (`Staging` vs anything else). Never put real
-  credentials in committed files.
+- PostgreSQL 18 via Podman; local connection string default in
+  `appsettings.json` (`ConnectionStrings:Postgres`, default `localhost:5433`,
+  db/user/pass `findatime`). The same key is used in every environment.
+  Locally it is overridden by gitignored `.env` and `.env.staging` files,
+  loaded by `Program.cs` via `AddDotNetEnvMulti([".env",
+  $".env.{EnvironmentName.ToLowerInvariant()}"])`; `.env.staging` wins over
+  `.env`. In
+  deployment (Render) the value comes from the `ConnectionStrings__Postgres`
+  env var. Never put real credentials in committed files.
 - EF Core migrations are stored under `Migrations/` and generated/updated with
   the `dotnet ef` CLI.
 

@@ -47,46 +47,51 @@ REST API for scheduling events, built with a feature-sliced layered architecture
 
 Secrets are never stored in committed files. Committed `appsettings.json` only contains the harmless local container defaults; every real credential lives in a gitignored `.env` file (local dev) or in the deployment platform's secret store (Render).
 
-### Connection strings
+There is a single connection string key, `ConnectionStrings:Postgres`, in every environment. It is resolved from the config sources in precedence order (committed `appsettings.json` default → `.env` → `.env.{Environment}` → real environment variables).
 
-- `ConnectionStrings:LocalConnection` — local PostgreSQL container (`localhost:5433`, database `findatime`). Committed default in `appsettings.json`; overridable via `.env`.
-- `ConnectionStrings:StagingConnection` — external staging database (Neon). No committed value; comes from `.env` locally and from a Render env var in deployment.
+`Program.cs` loads `.env` and `.env.{EnvironmentName}` convention files via DotNetEnv:
 
-`Program.cs` picks the key by environment: non-Staging reads `LocalConnection`, `Staging` reads `StagingConnection`.
+```csharp
+builder.Configuration.AddDotNetEnvMulti(
+    [".env", $".env.{builder.Environment.EnvironmentName.ToLowerInvariant()}"]);
+```
+
+Later files override earlier ones, so `.env.staging` wins over `.env` when running the staging profile (files are lowercase, e.g. `.env.staging`).
 
 ### Local development
 
-The local container DB works out of the box — no setup:
+The local container DB works out of the box — no setup needed, `appsettings.json` has the localhost default:
 
 ```
 dotnet run --launch-profile http
 ```
 
-Do **not** keep the `staging` profile first in `Properties/launchSettings.json`; plain `dotnet run` uses the first profile, so `http` must stay first to keep local runs on the local DB.
+Optional: copy `.env.example` to `.env` to override local settings. Do **not** keep the `staging` profile first in `Properties/launchSettings.json`; plain `dotnet run` uses the first profile, so `http` must stay first to keep local runs on the local DB.
 
 ### Staging locally (against Neon)
 
-1. Copy the template and fill in the real connection string:
+1. Copy the templates and fill in real values:
 
    ```
    cp .env.example .env
-   # edit .env -> ConnectionStrings__StagingConnection=...
+   cp .env.staging.example .env.staging
+   # edit .env.staging -> ConnectionStrings__Postgres=<neon connection string>
    ```
 
-2. Run with the staging profile (reads the secret from `.env`):
+2. Run with the staging profile (loads `.env` then `.env.staging`, so staging wins):
 
    ```
    dotnet run --launch-profile staging
    ```
 
-Migrations against staging use the same `.env`:
+Migrations against staging use the same files:
 
 ```
 dotnet ef database update --environment Staging
 ```
 
-`.env` is gitignored — never commit it. Migrations are generated with `dotnet ef migrations add <Name>` and stored under `Migrations/`.
+`.env` and `.env.staging` are gitignored — never commit them. Migrations are generated with `dotnet ef migrations add <Name>` and stored under `Migrations/`.
 
 ### Staging deployment (Render)
 
-Set `ASPNETCORE_ENVIRONMENT=Staging` and `ConnectionStrings__StagingConnection=<real value>` as Render environment variables. No `.env` is deployed; Render env vars feed the built-in configuration provider and take precedence.
+Set `ASPNETCORE_ENVIRONMENT=Staging` and `ConnectionStrings__Postgres=<real value>` as Render environment variables. No `.env` files are deployed; Render env vars feed the built-in configuration provider. The application reads the same `ConnectionStrings:Postgres` key in every environment.

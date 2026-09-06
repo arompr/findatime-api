@@ -6,11 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Configuration.AddDotNetEnv();
+builder.Configuration.AddDotNetEnvMulti([".env", $".env.{builder.Environment.EnvironmentName.ToLowerInvariant()}"]);
 
-var environment = builder.Environment.EnvironmentName;
-var connectionKey = environment == "Staging" ? "StagingConnection" : "LocalConnection";
-var connectionString = builder.Configuration.GetConnectionString(connectionKey);
+var connectionString =
+    builder.Configuration.GetConnectionString("Postgres")
+    ?? throw new InvalidOperationException("Postgres connection string is not configured.");
+
 builder.Services.AddDbContext<DbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddDbContext<ReadDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<EventRepository>();
