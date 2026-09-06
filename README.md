@@ -43,6 +43,25 @@ REST API for scheduling events, built with a feature-sliced layered architecture
      -d '{"name":"Team Sync"}'
    ```
 
+## Running the API in a container
+
+The API ships as a standalone container image (no DB inside it — point it at your
+Postgres via `ConnectionStrings__Postgres`). Build and run it with:
+
+```
+podman build -t findatime-api .
+podman run -p 5263:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Staging \
+  -e ConnectionStrings__Postgres='<connection string>' \
+  findatime-api
+```
+
+The container listens on `:8080` (exposed as `5263` locally). Health check:
+`GET /health`. Configuration is provided via environment variables, never baked
+into the image (see [Database configuration](#database-configuration)). The
+`docker-compose.yml` Postgres service is only for local development; the
+containerized API does not start or manage a database.
+
 ## Database configuration
 
 Secrets are never stored in committed files. Committed `appsettings.json` only contains the harmless local container defaults; every real credential lives in a gitignored `.env` file (local dev) or in the deployment platform's secret store (Render).

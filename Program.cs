@@ -32,5 +32,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapEvents();
+app.MapHealth();
 
 app.Run();
