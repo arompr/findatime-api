@@ -9,6 +9,11 @@ and let participants indicate availability.
 - PostgreSQL 18 (run locally via Podman, `docker-compose.yml`)
 - OpenAPI document (Development only)
 
+## Docs
+
+- [Database migrations](Docs/db-migrations.md) — how to change the schema and
+  apply migrations
+
 ## Prerequisites
 
 - .NET SDK 10
