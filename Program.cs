@@ -1,8 +1,8 @@
 using DotNetEnv.Configuration;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -12,8 +12,10 @@ var connectionString =
     builder.Configuration.GetConnectionString("Postgres")
     ?? throw new InvalidOperationException("Postgres connection string is not configured.");
 
-builder.Services.AddDbContext<DbContext>(options => options.UseNpgsql(connectionString));
-builder.Services.AddDbContext<ReadDbContext>(options => options.UseNpgsql(connectionString));
+var dataSource = NpgsqlDataSource.Create(connectionString);
+builder.Services.AddSingleton(dataSource);
+
+builder.Services.AddDbContext<DbContext>(options => options.UseNpgsql(dataSource));
 builder.Services.AddScoped<EventRepository>();
 builder.Services.AddScoped<ReadEventService>();
 builder.Services.AddSingleton<EventFactory>();

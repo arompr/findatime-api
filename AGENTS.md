@@ -53,8 +53,8 @@ Layering rules:
   repositories/services; it returns/accepts DTOs.
 - **Domain** is pure C# with no EF or HTTP dependencies.
 - **Infra** maps domain objects to DB models. The **write** side uses EF Core
-  (`DbContext`, `EventRepository`). The **read** side uses a separate
-  `ReadDbContext` + Dapper running SQL files loaded via `Sql.Load(...)`.
+  (`DbContext`, `EventRepository`). The **read** side uses a single
+  `NpgsqlDataSource` + Dapper running SQL files loaded via `Sql.Load(...)`.
 
 ## Conventions
 

@@ -1,28 +1,22 @@
-using System.Data;
 using Dapper;
+using Npgsql;
 
 class ReadEventService
 {
     private static readonly string GetEventSql = Sql.Load("get_event.sql");
 
-    private ReadDbContext _readDbContext;
+    private NpgsqlDataSource _dataSource;
 
-    public ReadEventService(ReadDbContext readDbContext)
+    public ReadEventService(NpgsqlDataSource dataSource)
     {
-        this._readDbContext = readDbContext;
+        this._dataSource = dataSource;
     }
 
     public async Task<EventReadDto?> GetEvent(Guid eventId)
     {
-        var connection = _readDbContext.Database.GetDbConnection();
+        await using var connection = await _dataSource.OpenConnectionAsync();
 
-        if (connection.State != ConnectionState.Open)
-            await connection.OpenAsync();
-
-        await using var reader = await connection.ExecuteReaderAsync(
-            GetEventSql,
-            new { id = eventId }
-        );
+        await using var reader = await connection.ExecuteReaderAsync(GetEventSql, new { id = eventId });
 
         if (!await reader.ReadAsync())
             return null;
