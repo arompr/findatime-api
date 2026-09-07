@@ -30,7 +30,7 @@ jobs:
                   ASPNETCORE_ENVIRONMENT: Staging
               run: |
                   set -euo pipefail
-                  dotnet ef database update 2>&1
+                  dotnet ef database update --verbose
 
     # Trigger the Render redeploy only if the migration succeeded.
     deploy:
