@@ -26,10 +26,11 @@ jobs:
             - name: Apply database migrations
               id: update
               env:
-                  ConnectionStrings__Postgres: ${{ secrets.DB_CONNECTION_STRING_STAGING }}
+                  ConnectionStrings__Postgres: ${{ secrets.STAGING_DB_CONNECTION_STRING }}
+                  ASPNETCORE_ENVIRONMENT: Staging
               run: |
                   set -euo pipefail
-                  dotnet ef database update --environment Staging 2>&1
+                  dotnet ef database update 2>&1
 
     # Trigger the Render redeploy only if the migration succeeded.
     deploy:
