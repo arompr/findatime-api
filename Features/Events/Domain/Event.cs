@@ -1,19 +1,27 @@
 class Event
 {
-    public EventId EventId { get; set; }
-    public string Name { get; set; }
-    public ParticipantId CreatorParticipantId { get; set; }
-    public List<Participant> Participants { get; } = new List<Participant>();
+    private readonly List<Participant> _participants;
 
-    public Event(EventId eventId, string Name, ParticipantId creatorParticipantId)
+    public EventId Id { get; }
+    public string Name { get; }
+    public ParticipantId CreatorParticipantId { get; }
+    public IReadOnlyCollection<Participant> Participants => _participants;
+
+    public Event(EventId id, string name, ParticipantId creatorParticipantId, List<Participant> participants)
     {
-        this.EventId = eventId;
-        this.Name = Name;
+        this.Id = id;
+        this.Name = name;
         this.CreatorParticipantId = creatorParticipantId;
+        this._participants = participants;
+    }
+
+    public static Event Create(EventId id, string name, Participant creator)
+    {
+        return new Event(id, name, creator.ParticipantId, [creator]);
     }
 
     public void AddParticipant(Participant participant)
     {
-        this.Participants.Add(participant);
+        this._participants.Add(participant);
     }
 }

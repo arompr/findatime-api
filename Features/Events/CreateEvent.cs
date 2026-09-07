@@ -13,6 +13,7 @@ class CreateEvent
     {
         Event domainEvent = this._eventFactory.createEvent(eventName, participantUuid);
         await this._eventRepository.Save(domainEvent);
-        return domainEvent.EventId.Value;
+        return domainEvent.Id.Value;
     }
 }
+

@@ -9,13 +9,8 @@ class EventFactory
 
     public Event createEvent(string name, string participantUuid)
     {
-        Participant creatorParticipant = this._participantFactory.createParticipant(participantUuid);
-        Event domainEvent = new Event(
-            new EventId(Guid.NewGuid().ToString()),
-            name,
-            creatorParticipant.ParticipantId
-        );
-        domainEvent.AddParticipant(creatorParticipant);
-        return domainEvent;
+        Participant creator = this._participantFactory.createParticipant(participantUuid);
+        EventId eventId = new EventId(Guid.NewGuid().ToString());
+        return Event.Create(eventId, name, creator);
     }
 }
