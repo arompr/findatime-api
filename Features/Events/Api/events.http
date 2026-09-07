@@ -1,4 +1,5 @@
-@baseUrl = http://localhost:5263
+@baseUrl = http://localhost:8080
+#@baseUrl = http://localhost:5263
 
 ### Create event
 POST {{baseUrl}}/events
