@@ -1,0 +1,43 @@
+name: Trigger deployment for findatime-api-staging
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    # Apply pending EF Core migrations to the staging DB before deploying.
+    # Fails the job (and blocks `deploy`) if any migration cannot be applied.
+    migrate:
+        runs-on: ubuntu-latest
+        outputs:
+            applied: ${{ steps.update.outcome == 'success' }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: "10.0.x"
+            - name: Install dotnet-ef
+              run: dotnet tool install --global dotnet-ef
+            - name: Apply database migrations
+              id: update
+              env:
+                  ConnectionStrings__Postgres: ${{ secrets.DB_CONNECTION_STRING_STAGING }}
+              run: |
+                  set -euo pipefail
+                  dotnet ef database update --environment Staging 2>&1
+
+    # Trigger the Render redeploy only if the migration succeeded.
+    deploy:
+        needs: migrate
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploy to staging
+              env:
+                  deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL_STAGING }}
+              run: |
+                  set -euo pipefail
+                  curl "$deploy_url"
+                  echo "Deploy triggered successfully."
