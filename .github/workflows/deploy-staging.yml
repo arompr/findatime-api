@@ -14,9 +14,9 @@ jobs:
         outputs:
             applied: ${{ steps.update.outcome == 'success' }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - name: Setup .NET
-              uses: actions/setup-dotnet@v4
+              uses: actions/setup-dotnet@v5
               with:
                   dotnet-version: "10.0.x"
             - name: Install dotnet-ef
@@ -30,7 +30,7 @@ jobs:
                   ASPNETCORE_ENVIRONMENT: Staging
               run: |
                   set -euo pipefail
-                  dotnet ef database update --verbose
+                  dotnet ef database update
 
     # Trigger the Render redeploy only if the migration succeeded.
     deploy:
