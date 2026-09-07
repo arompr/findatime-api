@@ -26,7 +26,7 @@ jobs:
             - name: Apply database migrations
               id: update
               env:
-                  ConnectionStrings__Postgres: ${{ secrets.STAGING_DB_CONNECTION_STRING }}
+                  ConnectionStrings__Postgres: ${{ secrets.DB_CONNECTION_STRING_STAGING }}
                   ASPNETCORE_ENVIRONMENT: Staging
               run: |
                   set -euo pipefail
