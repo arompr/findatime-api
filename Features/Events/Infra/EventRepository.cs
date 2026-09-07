@@ -13,7 +13,8 @@ class EventRepository
         {
             Id = Guid.Parse(domainEvent.Id.Value),
             Name = domainEvent.Name,
-            CreatorParticipantId = Guid.Parse(domainEvent.CreatorParticipantId.Value),
+            OrganizerParticipantId = Guid.Parse(domainEvent.OrganizerParticipantId.Value),
+            PublicId = domainEvent.PublicId.Value,
         };
 
         this._dbContext.Events.Add(eventDbModel);
@@ -24,6 +25,7 @@ class EventRepository
             {
                 Id = Guid.Parse(participant.ParticipantId.Value),
                 ParticipantUuid = Guid.Parse(participant.ParticipantUuid.Value),
+                Name = participant.Name,
                 EventId = Guid.Parse(domainEvent.Id.Value),
             };
 

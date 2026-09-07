@@ -9,7 +9,10 @@ public static class EventsRestService
                     if (!Guid.TryParse(requestParams.ParticipantUuid, out _))
                         return Results.BadRequest("participantUuid must be a valid uuid");
 
-                    var eventId = await createEvent.Execute(requestParams.Name, requestParams.ParticipantUuid);
+                    if (string.IsNullOrWhiteSpace(requestParams.ParticipantName))
+                        return Results.BadRequest("participantName is required");
+
+                    var eventId = await createEvent.Execute(requestParams.Name, requestParams.ParticipantUuid, requestParams.ParticipantName);
                     return Results.Created($"/events/{eventId}", eventId);
                 }
             )

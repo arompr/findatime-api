@@ -7,7 +7,8 @@ Content-Type: application/json
 
 {
     "name": "Saturday Night Local",
-    "participantUuid": "4a7b3c2d-1e2f-3a4b-5c6d-7e8f9a0b1c2d"
+    "participantUuid": "4a7b3c2d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+    "participantName": "Alice"
 }
 
 ### Get event

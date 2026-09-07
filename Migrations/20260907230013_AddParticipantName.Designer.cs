@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace findatime_api.Migrations
 {
     [DbContext(typeof(DbContext))]
-    partial class FindatimeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260907230013_AddParticipantName")]
+    partial class AddParticipantName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -28,24 +31,16 @@ namespace findatime_api.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("CreatorParticipantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_participant_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<Guid>("OrganizerParticipantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organizer_participant_id");
-
-                    b.Property<string>("PublicId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("public_id");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("PublicId")
-                        .IsUnique();
 
                     b.ToTable("events");
                 });

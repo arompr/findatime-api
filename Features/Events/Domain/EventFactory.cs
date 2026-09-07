@@ -7,10 +7,10 @@ class EventFactory
         this._participantFactory = participantFactory;
     }
 
-    public Event createEvent(string name, string participantUuid)
+    public Event createEvent(string name, string participantUuid, string participantName, PublicId publicId)
     {
-        Participant creator = this._participantFactory.createParticipant(participantUuid);
+        Participant organizer = this._participantFactory.createParticipant(participantUuid, participantName);
         EventId eventId = new EventId(Guid.NewGuid().ToString());
-        return Event.Create(eventId, name, creator);
+        return Event.Create(eventId, publicId, name, organizer);
     }
 }

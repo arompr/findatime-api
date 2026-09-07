@@ -20,6 +20,7 @@ builder.Services.AddScoped<EventRepository>();
 builder.Services.AddScoped<ReadEventService>();
 builder.Services.AddSingleton<EventFactory>();
 builder.Services.AddSingleton<ParticipantFactory>();
+builder.Services.AddSingleton<PublicIdGenerator>();
 builder.Services.AddScoped<CreateEvent>();
 builder.Services.AddScoped<GetEvent>();
 
