@@ -9,29 +9,19 @@ class EventRepository
 
     public async Task Save(Event domainEvent)
     {
-        EventDbModel eventDbModel = new EventDbModel
-        {
-            Id = Guid.Parse(domainEvent.Id.Value),
-            Name = domainEvent.Name,
-            OrganizerParticipantId = Guid.Parse(domainEvent.OrganizerParticipantId.Value),
-            PublicId = domainEvent.PublicId.Value,
-        };
-
-        this._dbContext.Events.Add(eventDbModel);
-
-        foreach (Participant participant in domainEvent.Participants)
-        {
-            ParticipantDbModel participantDbModel = new ParticipantDbModel
-            {
-                Id = Guid.Parse(participant.ParticipantId.Value),
-                ParticipantUuid = Guid.Parse(participant.ParticipantUuid.Value),
-                Name = participant.Name,
-                EventId = Guid.Parse(domainEvent.Id.Value),
-            };
-
-            this._dbContext.Participants.Add(participantDbModel);
-        }
+        if (this._dbContext.Entry(domainEvent).State == EntityState.Detached)
+            this._dbContext.Events.Add(domainEvent);
 
         await this._dbContext.SaveChangesAsync();
+    }
+
+    public async Task<Event?> GetById(Guid id)
+    {
+        List<Event> events = await this._dbContext.Events
+            .Include(e => e.Participants)
+            .Where(e => e.Id == new EventId(id.ToString()))
+            .ToListAsync();
+
+        return events.SingleOrDefault();
     }
 }

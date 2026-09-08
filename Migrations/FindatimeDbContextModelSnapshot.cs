@@ -21,10 +21,9 @@ namespace findatime_api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("EventDbModel", b =>
+            modelBuilder.Entity("Event", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -50,10 +49,9 @@ namespace findatime_api.Migrations
                     b.ToTable("events");
                 });
 
-            modelBuilder.Entity("ParticipantDbModel", b =>
+            modelBuilder.Entity("Participant", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("ParticipantId")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -70,9 +68,25 @@ namespace findatime_api.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("participant_uuid");
 
-                    b.HasKey("Id");
+                    b.HasKey("ParticipantId");
+
+                    b.HasIndex("EventId");
 
                     b.ToTable("participants");
+                });
+
+            modelBuilder.Entity("Participant", b =>
+                {
+                    b.HasOne("Event", null)
+                        .WithMany("Participants")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Event", b =>
+                {
+                    b.Navigation("Participants");
                 });
 #pragma warning restore 612, 618
         }
