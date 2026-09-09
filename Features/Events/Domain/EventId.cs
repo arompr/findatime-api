@@ -1,9 +1,14 @@
-public class EventId
+public readonly record struct EventId
 {
-    public string Value { get; set; }
+    public string Value { get; }
 
-    public EventId(string value)
+    private EventId(string value)
     {
         this.Value = value;
+    }
+
+    public static EventId FromString(string value)
+    {
+        return new EventId(value);
     }
 }

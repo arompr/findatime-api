@@ -9,8 +9,11 @@
 
   <ItemGroup>
     <Compile Remove="FindAtime.UnitTests\**" />
+    <Compile Remove="FindAtime.IntegrationTests\**" />
     <EmbeddedResource Remove="FindAtime.UnitTests\**" />
+    <EmbeddedResource Remove="FindAtime.IntegrationTests\**" />
     <None Remove="FindAtime.UnitTests\**" />
+    <None Remove="FindAtime.IntegrationTests\**" />
   </ItemGroup>
 
   <ItemGroup>

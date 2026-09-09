@@ -7,9 +7,9 @@ public class ParticipantFactoryTests
     [Fact]
     public void CreateParticipant_ShouldSetParticipantUuid()
     {
-        var eventId = new EventId("event-1");
+        var eventId = EventId.FromString("event-1");
 
-        var participant = _factory.createParticipant("test-uuid", "Alice", eventId);
+        var participant = _factory.CreateParticipant("test-uuid", "Alice", eventId);
 
         Assert.Equal("test-uuid", participant.ParticipantUuid.Value);
     }
@@ -17,9 +17,9 @@ public class ParticipantFactoryTests
     [Fact]
     public void CreateParticipant_ShouldSetName()
     {
-        var eventId = new EventId("event-1");
+        var eventId = EventId.FromString("event-1");
 
-        var participant = _factory.createParticipant("test-uuid", "Alice", eventId);
+        var participant = _factory.CreateParticipant("test-uuid", "Alice", eventId);
 
         Assert.Equal("Alice", participant.Name);
     }
@@ -27,19 +27,19 @@ public class ParticipantFactoryTests
     [Fact]
     public void CreateParticipant_ShouldSetEventId()
     {
-        var eventId = new EventId("event-1");
+        var eventId = EventId.FromString("event-1");
 
-        var participant = _factory.createParticipant("test-uuid", "Alice", eventId);
+        var participant = _factory.CreateParticipant("test-uuid", "Alice", eventId);
 
-        Assert.Same(eventId, participant.EventId);
+        Assert.Equal(eventId, participant.EventId);
     }
 
     [Fact]
     public void CreateParticipant_ShouldGenerateParticipantId()
     {
-        var eventId = new EventId("event-1");
+        var eventId = EventId.FromString("event-1");
 
-        var participant = _factory.createParticipant("test-uuid", "Alice", eventId);
+        var participant = _factory.CreateParticipant("test-uuid", "Alice", eventId);
 
         Assert.False(string.IsNullOrEmpty(participant.ParticipantId.Value));
     }

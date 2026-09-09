@@ -1,9 +1,14 @@
-public class PublicId
+public readonly record struct PublicId
 {
     public string Value { get; }
 
-    public PublicId(string value)
+    private PublicId(string value)
     {
         this.Value = value;
+    }
+
+    public static PublicId FromString(string value)
+    {
+        return new PublicId(value);
     }
 }

@@ -7,6 +7,6 @@ public class PublicIdGenerator
 
     public PublicId Generate()
     {
-        return new PublicId(Nanoid.Generate(Alphabet, Length));
+        return PublicId.FromString(Nanoid.Generate(Alphabet, Length));
     }
 }

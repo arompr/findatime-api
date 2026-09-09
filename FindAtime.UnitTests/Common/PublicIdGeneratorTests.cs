@@ -11,7 +11,6 @@ public class PublicIdGeneratorTests
     {
         var publicId = _generator.Generate();
 
-        Assert.NotNull(publicId);
         Assert.False(string.IsNullOrEmpty(publicId.Value));
     }
 

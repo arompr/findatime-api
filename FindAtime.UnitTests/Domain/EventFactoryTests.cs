@@ -13,9 +13,9 @@ public class EventFactoryTests
     [Fact]
     public void CreateEvent_ShouldReturnEventWithCorrectName()
     {
-        var publicId = new PublicId("abc123");
+        var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.createEvent("Team Meeting", "uuid-1", "Alice", publicId);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId);
 
         Assert.Equal("Team Meeting", @event.Name);
     }
@@ -23,19 +23,19 @@ public class EventFactoryTests
     [Fact]
     public void CreateEvent_ShouldSetPublicId()
     {
-        var publicId = new PublicId("abc123");
+        var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.createEvent("Team Meeting", "uuid-1", "Alice", publicId);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId);
 
-        Assert.Same(publicId, @event.PublicId);
+        Assert.Equal(publicId, @event.PublicId);
     }
 
     [Fact]
     public void CreateEvent_ShouldGenerateEventId()
     {
-        var publicId = new PublicId("abc123");
+        var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.createEvent("Team Meeting", "uuid-1", "Alice", publicId);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId);
 
         Assert.False(string.IsNullOrEmpty(@event.Id.Value));
     }
@@ -43,9 +43,9 @@ public class EventFactoryTests
     [Fact]
     public void CreateEvent_ShouldHaveOrganizerAsFirstParticipant()
     {
-        var publicId = new PublicId("abc123");
+        var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.createEvent("Team Meeting", "uuid-1", "Alice", publicId);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId);
 
         Participant organizer = Assert.Single(@event.Participants);
         Assert.Equal("Alice", organizer.Name);

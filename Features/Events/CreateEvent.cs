@@ -14,7 +14,7 @@ public class CreateEvent
     public async Task<string> Execute(string eventName, string participantUuid, string participantName)
     {
         PublicId publicId = this._publicIdGenerator.Generate();
-        Event domainEvent = this._eventFactory.createEvent(eventName, participantUuid, participantName, publicId);
+        Event domainEvent = this._eventFactory.CreateEvent(eventName, participantUuid, participantName, publicId);
         await this._eventRepository.Save(domainEvent);
         return domainEvent.Id.Value;
     }

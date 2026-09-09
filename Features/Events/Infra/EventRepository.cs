@@ -19,7 +19,7 @@ public class EventRepository
     {
         List<Event> events = await this._dbContext.Events
             .Include(e => e.Participants)
-            .Where(e => e.Id == new EventId(id.ToString()))
+            .Where(e => e.Id == EventId.FromString(id.ToString()))
             .ToListAsync();
 
         return events.SingleOrDefault();
