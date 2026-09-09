@@ -1,4 +1,4 @@
-class GetEvent
+public class GetEvent
 {
     private ReadEventService _readEventService;
 

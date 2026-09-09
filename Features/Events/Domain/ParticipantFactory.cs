@@ -1,4 +1,4 @@
-class ParticipantFactory
+public class ParticipantFactory
 {
     public Participant createParticipant(string participantUuid, string name, EventId eventId)
     {

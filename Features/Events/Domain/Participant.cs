@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
 [Table("participants")]
-class Participant
+public class Participant
 {
     [Column("id")]
     public ParticipantId ParticipantId { get; set; }

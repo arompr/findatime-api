@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-class DbContext : Microsoft.EntityFrameworkCore.DbContext
+public class DbContext : Microsoft.EntityFrameworkCore.DbContext
 {
     public DbSet<Event> Events { get; set; }
     public DbSet<Participant> Participants { get; set; }

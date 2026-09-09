@@ -1,4 +1,4 @@
-class EventFactory
+public class EventFactory
 {
     private ParticipantFactory _participantFactory;
 

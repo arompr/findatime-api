@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-class ReadEventService
+public class ReadEventService
 {
     private static readonly string GetEventSql = Sql.Load("get_event.sql");
 

@@ -1,4 +1,4 @@
-static class Sql
+public static class Sql
 {
     public static string Load(string fileName)
     {

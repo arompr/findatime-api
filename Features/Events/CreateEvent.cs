@@ -1,4 +1,4 @@
-class CreateEvent
+public class CreateEvent
 {
     private EventFactory _eventFactory;
     private EventRepository _eventRepository;

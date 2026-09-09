@@ -1,4 +1,4 @@
-class EventId
+public class EventId
 {
     public string Value { get; set; }
 

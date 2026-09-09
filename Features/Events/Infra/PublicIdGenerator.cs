@@ -1,6 +1,6 @@
 using NanoidDotNet;
 
-class PublicIdGenerator
+public class PublicIdGenerator
 {
     private const int Length = 12;
     private const string Alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

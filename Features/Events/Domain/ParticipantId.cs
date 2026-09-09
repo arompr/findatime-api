@@ -1,4 +1,4 @@
-class ParticipantId
+public class ParticipantId
 {
     public string Value { get; set; }
 

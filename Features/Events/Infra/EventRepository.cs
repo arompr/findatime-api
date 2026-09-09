@@ -1,4 +1,4 @@
-class EventRepository
+public class EventRepository
 {
     private DbContext _dbContext;
 

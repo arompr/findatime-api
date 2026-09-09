@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 [Table("events")]
 [Index(nameof(PublicId), IsUnique = true)]
-class Event
+public class Event
 {
     private List<Participant> _participants;
 

@@ -1,4 +1,4 @@
-class PublicId
+public class PublicId
 {
     public string Value { get; }
 

@@ -38,3 +38,5 @@ app.MapEvents();
 app.MapHealth();
 
 app.Run();
+
+public partial class Program { }
