@@ -38,12 +38,14 @@ src/FindAtime.Api/
   Features/
     Events/
       Api/            HTTP layer (endpoint mapping, request DTOs)
+      Application/    Use cases + response DTOs (CreateEvent, GetEvent, JoinEvent, ...)
+        Exceptions/   Application exceptions (EventNotFound, InvalidPasscode, ...)
       Domain/         Domain model + factory (Event, EventId, EventFactory)
       Infra/          Persistence (EF Core write side)
         Read/         Read side (raw SQL + Dapper)
-      <UseCase>.cs    Application services (CreateEvent, GetEvent)
   Common/
     Sql.cs            Loads embedded SQL resources by filename
+    ExceptionHandler.cs  Maps application exceptions to HTTP responses
   Program.cs          Composition root / DI registration
 tests/
   FindAtime.UnitTests/        xunit unit tests
@@ -53,8 +55,9 @@ tests/
 Layering rules:
 
 - **Api** depends on application services (`CreateEvent`, `GetEvent`).
-- **Application** (use-case classes) orchestrates `Domain` factories and `Infra`
-  repositories/services; it returns/accepts DTOs.
+- **Application** (use-case classes under `Features/<Feature>/Application/`)
+  orchestrates `Domain` factories and `Infra` repositories/services; it
+  returns/accepts DTOs.
 - **Domain** is pure C# with no EF or HTTP dependencies.
 - **Infra** maps domain objects to DB models. The **write** side uses EF Core
   (`DbContext`, `EventRepository`). The **read** side uses a single
@@ -63,7 +66,15 @@ Layering rules:
 ## Conventions
 
 - Prefer feature slices over cross-cutting folders; add a feature under
-  `Features/<FeatureName>/` with the same `Api/Domain/Infra` sub-structure.
+  `Features/<FeatureName>/` with the same `Api/Application/Domain/Infra`
+  sub-structure (application exceptions under `Application/Exceptions/`).
+- Signal expected failures from use cases by throwing application exceptions
+  (e.g. `EventNotFoundException`). `Common/ExceptionHandler` maps exception type
+  to an HTTP status and machine-readable `error` code through a single
+  `Dictionary<Type, (int, string)>`; response bodies are `{ message, error }`.
+  Add new mappings to that dictionary — do not chain `if` statements.
+- Request-shape validation (malformed uuid, blank required fields) stays as
+  inline `Results.BadRequest` in the endpoints.
 - Keep the read and write sides separated (CQRS-lite): writes via EF Core,
   reads via raw SQL + Dapper.
 - SQL read queries live in `*.sql` files embedded as resources, referenced by

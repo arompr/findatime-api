@@ -29,10 +29,8 @@ public class GetEventByPublicIdTests : IntegrationTest
     }
 
     [Fact]
-    public async Task Execute_ShouldReturnNullForUnknownPublicId()
+    public async Task Execute_ShouldThrowForUnknownPublicId()
     {
-        var dto = await _getEventByPublicId.Execute("nonexistent123");
-
-        Assert.Null(dto);
+        await Assert.ThrowsAsync<EventNotFoundException>(() => _getEventByPublicId.Execute("nonexistent123"));
     }
 }

@@ -28,9 +28,7 @@ public class LeaveEventTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
         await _joinEvent.Execute(Guid.Parse(created.EventId), created.Passcode, FriendGuestId, "Bob");
 
-        var result = await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
-
-        Assert.Equal(LeaveEventStatus.Left, result.Status);
+        await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
 
         var persisted = await _repository.GetById(Guid.Parse(created.EventId));
         Assert.Single(persisted!.Participants);
@@ -44,32 +42,29 @@ public class LeaveEventTests : IntegrationTest
         await _joinEvent.Execute(Guid.Parse(created.EventId), created.Passcode, FriendGuestId, "Bob");
 
         await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
-        var second = await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
-
-        Assert.Equal(LeaveEventStatus.Left, second.Status);
-    }
-
-    [Fact]
-    public async Task Execute_ShouldRejectOrganizerLeave()
-    {
-        var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
-
-        var result = await _leaveEvent.Execute(
-            Guid.Parse(created.EventId), TestEvents.OrganizerGuestId);
-
-        Assert.Equal(LeaveEventStatus.OrganizerCannotLeave, result.Status);
+        await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
 
         var persisted = await _repository.GetById(Guid.Parse(created.EventId));
         Assert.Single(persisted!.Participants);
     }
 
     [Fact]
-    public async Task Execute_ShouldReturnNotFoundForUnknownEvent()
+    public async Task Execute_ShouldThrowWhenOrganizerLeaves()
     {
-        var result = await _leaveEvent.Execute(Guid.NewGuid(), FriendGuestId);
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
 
-        Assert.Equal(LeaveEventStatus.NotFound, result.Status);
+        await Assert.ThrowsAsync<OrganizerCannotLeaveException>(() => _leaveEvent.Execute(
+            Guid.Parse(created.EventId), TestEvents.OrganizerGuestId));
+
+        var persisted = await _repository.GetById(Guid.Parse(created.EventId));
+        Assert.Single(persisted!.Participants);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowForUnknownEvent()
+    {
+        await Assert.ThrowsAsync<EventNotFoundException>(() => _leaveEvent.Execute(Guid.NewGuid(), FriendGuestId));
     }
 
     [Fact]
@@ -78,8 +73,9 @@ public class LeaveEventTests : IntegrationTest
         var created = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
 
-        var result = await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
+        await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
 
-        Assert.Equal(LeaveEventStatus.Left, result.Status);
+        var persisted = await _repository.GetById(Guid.Parse(created.EventId));
+        Assert.Single(persisted!.Participants);
     }
 }

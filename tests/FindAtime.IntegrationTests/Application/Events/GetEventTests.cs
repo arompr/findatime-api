@@ -29,10 +29,8 @@ public class GetEventTests : IntegrationTest
     }
 
     [Fact]
-    public async Task Execute_ShouldReturnNullForUnknownId()
+    public async Task Execute_ShouldThrowForUnknownId()
     {
-        var dto = await _getEvent.Execute(Guid.NewGuid());
-
-        Assert.Null(dto);
+        await Assert.ThrowsAsync<EventNotFoundException>(() => _getEvent.Execute(Guid.NewGuid()));
     }
 }

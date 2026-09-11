@@ -22,8 +22,8 @@ public static class EventsRestService
                 "/events/{id}",
                 async (Guid id, GetEvent getEvent) =>
                 {
-                    EventReadDto? eventReadDto = await getEvent.Execute(id);
-                    return eventReadDto is null ? Results.NotFound() : Results.Ok(eventReadDto);
+                    EventReadDto eventReadDto = await getEvent.Execute(id);
+                    return Results.Ok(eventReadDto);
                 }
             )
             .WithName("GetEvent");
@@ -32,8 +32,8 @@ public static class EventsRestService
                 "/events/by-public-id/{publicId}",
                 async (string publicId, GetEventByPublicId getEventByPublicId) =>
                 {
-                    GetEventByPublicIdResponse? response = await getEventByPublicId.Execute(publicId);
-                    return response is null ? Results.NotFound() : Results.Ok(response);
+                    GetEventByPublicIdResponse response = await getEventByPublicId.Execute(publicId);
+                    return Results.Ok(response);
                 }
             )
             .WithName("GetEventByPublicId");
@@ -51,21 +51,10 @@ public static class EventsRestService
                     if (string.IsNullOrWhiteSpace(requestParams.Passcode))
                         return Results.BadRequest("passcode is required");
 
-                    JoinEventResult result = await joinEvent.Execute(
+                    JoinEventResponse response = await joinEvent.Execute(
                         id, requestParams.Passcode, requestParams.GuestId, requestParams.ParticipantName);
 
-                    return result.Status switch
-                    {
-                        JoinEventStatus.Joined => Results.Created(
-                            $"/events/{id}/participants/{result.Response!.ParticipantId}", result.Response),
-                        JoinEventStatus.AlreadyJoined => Results.Ok(result.Response),
-                        JoinEventStatus.InvalidPasscode => Results.Json(
-                            new { error = "invalid_passcode" }, statusCode: StatusCodes.Status401Unauthorized),
-                        JoinEventStatus.NameMismatch => Results.Json(
-                            new { error = "name_mismatch" }, statusCode: StatusCodes.Status409Conflict),
-                        JoinEventStatus.EventNotFound => Results.NotFound(),
-                        _ => Results.StatusCode(StatusCodes.Status500InternalServerError),
-                    };
+                    return Results.Created($"/events/{id}/participants/{response.ParticipantId}", response);
                 }
             )
             .WithName("JoinEvent");
@@ -77,16 +66,9 @@ public static class EventsRestService
                     if (!Guid.TryParse(requestParams.GuestId, out _))
                         return Results.BadRequest("guestId must be a valid uuid");
 
-                    LeaveEventResult result = await leaveEvent.Execute(id, requestParams.GuestId);
+                    await leaveEvent.Execute(id, requestParams.GuestId);
 
-                    return result.Status switch
-                    {
-                        LeaveEventStatus.Left => Results.NoContent(),
-                        LeaveEventStatus.NotFound => Results.NotFound(),
-                        LeaveEventStatus.OrganizerCannotLeave => Results.Json(
-                            new { error = "organizer_cannot_leave" }, statusCode: StatusCodes.Status409Conflict),
-                        _ => Results.StatusCode(StatusCodes.Status500InternalServerError),
-                    };
+                    return Results.NoContent();
                 }
             )
             .WithName("LeaveEvent");

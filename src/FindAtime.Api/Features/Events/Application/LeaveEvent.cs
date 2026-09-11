@@ -7,25 +7,23 @@ public class LeaveEvent
         this._eventRepository = eventRepository;
     }
 
-    public async Task<LeaveEventResult> Execute(Guid eventId, string guestId)
+    public async Task Execute(Guid eventId, string guestId)
     {
         Event? domainEvent = await this._eventRepository.GetById(eventId);
         if (domainEvent is null)
-            return new LeaveEventResult(LeaveEventStatus.NotFound);
+            throw new EventNotFoundException(eventId);
 
         var requestGuestId = GuestId.FromString(guestId);
         Participant? participant = domainEvent.Participants
             .SingleOrDefault(p => p.GuestId == requestGuestId);
 
         if (participant is null)
-            return new LeaveEventResult(LeaveEventStatus.Left);
+            return;
 
         if (participant.ParticipantId == domainEvent.OrganizerParticipantId)
-            return new LeaveEventResult(LeaveEventStatus.OrganizerCannotLeave);
+            throw new OrganizerCannotLeaveException(eventId);
 
         domainEvent.RemoveParticipant(requestGuestId);
         await this._eventRepository.Save(domainEvent);
-
-        return new LeaveEventResult(LeaveEventStatus.Left);
     }
 }
