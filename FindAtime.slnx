@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="findatime-api.csproj" />
-  <Project Path="FindAtime.UnitTests/FindAtime.UnitTests.csproj" />
-  <Project Path="FindAtime.IntegrationTests/FindAtime.IntegrationTests.csproj" />
+  <Project Path="src/FindAtime.Api/FindAtime.Api.csproj" />
+  <Project Path="tests/FindAtime.UnitTests/FindAtime.UnitTests.csproj" />
+  <Project Path="tests/FindAtime.IntegrationTests/FindAtime.IntegrationTests.csproj" />
 </Solution>

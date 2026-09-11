@@ -34,16 +34,20 @@ split into sublayers. The code uses simple classes (no interfaces yet) wired up
 manually in `Program.cs`.
 
 ```
-Features/
-  Events/
-    Api/            HTTP layer (endpoint mapping, request DTOs)
-    Domain/         Domain model + factory (Event, EventId, EventFactory)
-    Infra/          Persistence (EF Core write side)
-      Read/         Read side (raw SQL + Dapper)
-    <UseCase>.cs    Application services (CreateEvent, GetEvent)
-Common/
-  Sql.cs            Loads embedded SQL resources by filename
-Program.cs          Composition root / DI registration
+src/FindAtime.Api/
+  Features/
+    Events/
+      Api/            HTTP layer (endpoint mapping, request DTOs)
+      Domain/         Domain model + factory (Event, EventId, EventFactory)
+      Infra/          Persistence (EF Core write side)
+        Read/         Read side (raw SQL + Dapper)
+      <UseCase>.cs    Application services (CreateEvent, GetEvent)
+  Common/
+    Sql.cs            Loads embedded SQL resources by filename
+  Program.cs          Composition root / DI registration
+tests/
+  FindAtime.UnitTests/        xunit unit tests
+  FindAtime.IntegrationTests/ xunit integration tests (Testcontainers.PostgreSql)
 ```
 
 Layering rules:
@@ -64,7 +68,7 @@ Layering rules:
   reads via raw SQL + Dapper.
 - SQL read queries live in `*.sql` files embedded as resources, referenced by
   filename through `Common/Sql.cs`. New SQL files must be added to the
-  `<EmbeddedResource>` items in `findatime-api.csproj`.
+  `<EmbeddedResource>` items in `src/FindAtime.Api/FindAtime.Api.csproj`.
 - Manual DI registration in `Program.cs` (no `IServiceCollection` extensions so
   far). Register per use-case/service; use the existing lifetime patterns
   (`Scoped` for repositories/services/use-cases, `Singleton` for stateless
@@ -97,23 +101,23 @@ Layering rules:
 podman compose up -d          # or: podman-compose up -d
 
 # Apply migrations
-dotnet ef database update
+dotnet ef database update --project src/FindAtime.Api/FindAtime.Api.csproj
 
 # Run the API (http profile on :5263)
-dotnet run --launch-profile http
+dotnet run --project src/FindAtime.Api/FindAtime.Api.csproj --launch-profile http
 
 # Run the API against the external staging DB (see appsettings.Staging.json)
-dotnet run --launch-profile staging
+dotnet run --project src/FindAtime.Api/FindAtime.Api.csproj --launch-profile staging
 
 # Apply migrations to the staging DB
-dotnet ef database update --environment Staging
+dotnet ef database update --environment Staging --project src/FindAtime.Api/FindAtime.Api.csproj
 
 # Add a migration
-dotnet ef migrations add <Name>
+dotnet ef migrations add <Name> --project src/FindAtime.Api/FindAtime.Api.csproj
+
+# Run the tests
+dotnet test
 
 # Build / verify
 dotnet build
 ```
-
-There is currently no test project and no lint/typecheck step beyond
-`dotnet build`.

@@ -30,7 +30,7 @@ jobs:
                   ASPNETCORE_ENVIRONMENT: Staging
               run: |
                   set -euo pipefail
-                  dotnet ef database update
+                  dotnet ef database update --project src/FindAtime.Api/FindAtime.Api.csproj
 
     # Trigger the Render redeploy only if the migration succeeded.
     deploy:

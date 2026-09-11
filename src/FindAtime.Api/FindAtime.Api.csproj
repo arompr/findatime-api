@@ -8,15 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="FindAtime.UnitTests\**" />
-    <Compile Remove="FindAtime.IntegrationTests\**" />
-    <EmbeddedResource Remove="FindAtime.UnitTests\**" />
-    <EmbeddedResource Remove="FindAtime.IntegrationTests\**" />
-    <None Remove="FindAtime.UnitTests\**" />
-    <None Remove="FindAtime.IntegrationTests\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
