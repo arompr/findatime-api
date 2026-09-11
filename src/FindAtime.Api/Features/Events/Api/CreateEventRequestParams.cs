@@ -1,1 +1,1 @@
-public record CreateEventRequestParams(string Name, string ParticipantUuid, string ParticipantName);
+public record CreateEventRequestParams(string Name, string GuestId, string OrganizerName);

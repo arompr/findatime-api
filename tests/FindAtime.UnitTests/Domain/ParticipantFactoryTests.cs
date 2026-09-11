@@ -5,13 +5,13 @@ public class ParticipantFactoryTests
     private readonly ParticipantFactory _factory = new();
 
     [Fact]
-    public void CreateParticipant_ShouldSetParticipantUuid()
+    public void CreateParticipant_ShouldSetGuestId()
     {
         var eventId = EventId.FromString("event-1");
 
         var participant = _factory.CreateParticipant("test-uuid", "Alice", eventId);
 
-        Assert.Equal("test-uuid", participant.ParticipantUuid.Value);
+        Assert.Equal("test-uuid", participant.GuestId.Value);
     }
 
     [Fact]

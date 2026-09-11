@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace findatime_api.Migrations
 {
     [DbContext(typeof(DbContext))]
-    partial class FindatimeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911201034_RenameParticipantUuidToGuestId")]
+    partial class RenameParticipantUuidToGuestId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,16 +38,6 @@ namespace findatime_api.Migrations
                     b.Property<Guid>("OrganizerParticipantId")
                         .HasColumnType("uuid")
                         .HasColumnName("organizer_participant_id");
-
-                    b.Property<byte[]>("PasscodeHash")
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("passcode_hash");
-
-                    b.Property<byte[]>("PasscodeSalt")
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("passcode_salt");
 
                     b.Property<string>("PublicId")
                         .IsRequired()
@@ -80,8 +73,7 @@ namespace findatime_api.Migrations
 
                     b.HasKey("ParticipantId");
 
-                    b.HasIndex("EventId", "GuestId")
-                        .IsUnique();
+                    b.HasIndex("EventId");
 
                     b.ToTable("participants");
                 });

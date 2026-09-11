@@ -7,9 +7,30 @@ Content-Type: application/json
 
 {
     "name": "Saturday Night Local",
-    "participantUuid": "4a7b3c2d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
-    "participantName": "Alice"
+    "guestId": "4a7b3c2d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+    "organizerName": "Alice"
 }
 
-### Get event
+### Get event by id
 GET {{baseUrl}}/events/f836fbaf-7b81-474e-9b53-478ad1ac2a15
+
+### Get event by public id
+GET {{baseUrl}}/events/by-public-id/{{publicId}}
+
+### Join event
+POST {{baseUrl}}/events/f836fbaf-7b81-474e-9b53-478ad1ac2a15/join
+Content-Type: application/json
+
+{
+    "passcode": "ABC234",
+    "guestId": "9c8d7e6f-5a4b-3c2d-1e0f-9a8b7c6d5e4f",
+    "participantName": "Bob"
+}
+
+### Leave event
+POST {{baseUrl}}/events/f836fbaf-7b81-474e-9b53-478ad1ac2a15/leave
+Content-Type: application/json
+
+{
+    "guestId": "9c8d7e6f-5a4b-3c2d-1e0f-9a8b7c6d5e4f"
+}

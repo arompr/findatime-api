@@ -18,31 +18,47 @@ public class Event
     [Column("organizer_participant_id")]
     public ParticipantId OrganizerParticipantId { get; private set; }
 
+    [Column("passcode_hash")]
+    public byte[] PasscodeHash { get; private set; }
+
+    [Column("passcode_salt")]
+    public byte[] PasscodeSalt { get; private set; }
+
     public IReadOnlyCollection<Participant> Participants => _participants;
 
     private Event()
     {
         this._participants = new List<Participant>();
+        this.PasscodeHash = [];
+        this.PasscodeSalt = [];
     }
 
-    public Event(EventId id, PublicId publicId, string name, ParticipantId organizerParticipantId, List<Participant> participants)
+    public Event(EventId id, PublicId publicId, string name, ParticipantId organizerParticipantId, byte[] passcodeHash, byte[] passcodeSalt, List<Participant> participants)
     {
         this.Id = id;
         this.PublicId = publicId;
         this.Name = name;
         this.OrganizerParticipantId = organizerParticipantId;
+        this.PasscodeHash = passcodeHash;
+        this.PasscodeSalt = passcodeSalt;
         this._participants = participants;
     }
 
-    public static Event Create(EventId id, PublicId publicId, string name, Participant organizer)
+    public static Event Create(EventId id, PublicId publicId, string name, Participant organizer, byte[] passcodeHash, byte[] passcodeSalt)
     {
         organizer.EventId = id;
-        return new Event(id, publicId, name, organizer.ParticipantId, [organizer]);
+        return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, passcodeSalt, [organizer]);
     }
 
     public void AddParticipant(Participant participant)
     {
         participant.EventId = this.Id;
         this._participants.Add(participant);
+    }
+
+    public bool RemoveParticipant(GuestId guestId)
+    {
+        int removed = this._participants.RemoveAll(p => p.GuestId == guestId);
+        return removed > 0;
     }
 }

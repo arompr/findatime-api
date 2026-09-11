@@ -17,8 +17,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<EventFactory>();
         services.AddSingleton<ParticipantFactory>();
         services.AddSingleton<PublicIdGenerator>();
+        services.AddSingleton<PasscodeGenerator>();
+        services.AddSingleton<PasscodeHasher>();
         services.AddScoped<CreateEvent>();
         services.AddScoped<GetEvent>();
+        services.AddScoped<GetEventByPublicId>();
+        services.AddScoped<JoinEvent>();
+        services.AddScoped<LeaveEvent>();
 
         return services;
     }

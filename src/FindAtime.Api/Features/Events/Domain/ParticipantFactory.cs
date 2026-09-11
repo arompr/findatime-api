@@ -1,10 +1,10 @@
 public class ParticipantFactory
 {
-    public Participant CreateParticipant(string participantUuid, string name, EventId eventId)
+    public Participant CreateParticipant(string guestId, string name, EventId eventId)
     {
         return new Participant(
             ParticipantId.FromString(Guid.NewGuid().ToString()),
-            ParticipantUuid.FromString(participantUuid),
+            GuestId.FromString(guestId),
             name,
             eventId
         );

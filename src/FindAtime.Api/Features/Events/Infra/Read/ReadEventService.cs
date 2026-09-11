@@ -3,6 +3,7 @@ using Dapper;
 public class ReadEventService
 {
     private static readonly string GetEventSql = Sql.Load("get_event.sql");
+    private static readonly string GetEventByPublicIdSql = Sql.Load("get_event_by_public_id.sql");
 
     private IReadConnectionProvider _connectionProvider;
 
@@ -21,6 +22,21 @@ public class ReadEventService
             return null;
 
         return new EventReadDto(
+            reader.GetGuid(reader.GetOrdinal("id")).ToString(),
+            reader.GetString(reader.GetOrdinal("name"))
+        );
+    }
+
+    public async Task<GetEventByPublicIdResponse?> GetEventByPublicId(string publicId)
+    {
+        var connection = await _connectionProvider.OpenAsync();
+
+        await using var reader = await connection.ExecuteReaderAsync(GetEventByPublicIdSql, new { publicId });
+
+        if (!await reader.ReadAsync())
+            return null;
+
+        return new GetEventByPublicIdResponse(
             reader.GetGuid(reader.GetOrdinal("id")).ToString(),
             reader.GetString(reader.GetOrdinal("name"))
         );

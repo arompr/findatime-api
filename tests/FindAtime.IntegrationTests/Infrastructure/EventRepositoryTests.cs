@@ -22,9 +22,11 @@ public class EventRepositoryTests : IntegrationTest
     {
         var domainEvent = _eventFactory.CreateEvent(
             TestEvents.Name,
-            TestEvents.OrganizerUuid,
+            TestEvents.OrganizerGuestId,
             TestEvents.OrganizerName,
-            _publicIdGenerator.Generate());
+            _publicIdGenerator.Generate(),
+            [1, 2, 3],
+            [4, 5, 6]);
 
         await _repository.Save(domainEvent);
 

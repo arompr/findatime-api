@@ -18,13 +18,13 @@ public class GetEventTests : IntegrationTest
     [Fact]
     public async Task Execute_ShouldReturnEventDto()
     {
-        var eventId = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerUuid, TestEvents.OrganizerName);
+        var response = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
 
-        var dto = await _getEvent.Execute(Guid.Parse(eventId));
+        var dto = await _getEvent.Execute(Guid.Parse(response.EventId));
 
         Assert.NotNull(dto);
-        Assert.Equal(eventId, dto.Id);
+        Assert.Equal(response.EventId, dto.Id);
         Assert.Equal(TestEvents.Name, dto.Name);
     }
 

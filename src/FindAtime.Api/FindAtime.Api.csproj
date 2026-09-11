@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Features\Events\Infra\Read\get_event.sql" />
+    <EmbeddedResource Include="Features\Events\Infra\Read\get_event_by_public_id.sql" />
   </ItemGroup>
 
 </Project>

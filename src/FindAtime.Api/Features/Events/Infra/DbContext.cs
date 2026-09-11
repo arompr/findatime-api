@@ -31,13 +31,15 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
                 id => Guid.Parse(id.Value),
                 value => ParticipantId.FromString(value.ToString()));
 
-            entity.Property(p => p.ParticipantUuid).HasConversion(
-                participantUuid => Guid.Parse(participantUuid.Value),
-                value => ParticipantUuid.FromString(value.ToString()));
+            entity.Property(p => p.GuestId).HasConversion(
+                guestId => Guid.Parse(guestId.Value),
+                value => GuestId.FromString(value.ToString()));
 
             entity.Property(p => p.EventId).HasConversion(
                 id => Guid.Parse(id.Value),
                 value => EventId.FromString(value.ToString()));
+
+            entity.HasIndex(p => new { p.EventId, p.GuestId }).IsUnique();
         });
     }
 }
