@@ -1,5 +1,4 @@
 using DotNetEnv.Configuration;
-using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,17 +11,7 @@ var connectionString =
     builder.Configuration.GetConnectionString("Postgres")
     ?? throw new InvalidOperationException("Postgres connection string is not configured.");
 
-var dataSource = NpgsqlDataSource.Create(connectionString);
-builder.Services.AddSingleton(dataSource);
-
-builder.Services.AddDbContext<DbContext>(options => options.UseNpgsql(dataSource));
-builder.Services.AddScoped<EventRepository>();
-builder.Services.AddScoped<ReadEventService>();
-builder.Services.AddSingleton<EventFactory>();
-builder.Services.AddSingleton<ParticipantFactory>();
-builder.Services.AddSingleton<PublicIdGenerator>();
-builder.Services.AddScoped<CreateEvent>();
-builder.Services.AddScoped<GetEvent>();
+builder.Services.AddFindAtimeServices(connectionString);
 
 var app = builder.Build();
 

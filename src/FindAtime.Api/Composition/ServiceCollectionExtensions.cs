@@ -1,15 +1,16 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
-public static class TestServices
+public static class ServiceCollectionExtensions
 {
-    public static ServiceProvider Build(string connectionString)
+    public static IServiceCollection AddFindAtimeServices(
+        this IServiceCollection services,
+        string connectionString)
     {
-        var services = new ServiceCollection();
-
         var dataSource = NpgsqlDataSource.Create(connectionString);
+
         services.AddSingleton(dataSource);
+        services.AddScoped<IReadConnectionProvider, ReadConnectionProvider>();
         services.AddDbContext<DbContext>(options => options.UseNpgsql(dataSource));
         services.AddScoped<EventRepository>();
         services.AddScoped<ReadEventService>();
@@ -19,6 +20,6 @@ public static class TestServices
         services.AddScoped<CreateEvent>();
         services.AddScoped<GetEvent>();
 
-        return services.BuildServiceProvider();
+        return services;
     }
 }

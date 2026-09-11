@@ -1,59 +1,48 @@
 using Microsoft.Extensions.DependencyInjection;
 
 [Collection(PostgresCollection.Name)]
-public class EventRepositoryTests
+public class EventRepositoryTests : IntegrationTest
 {
-    private readonly PostgresFixture _fixture;
+    private EventFactory _eventFactory = default!;
+    private PublicIdGenerator _publicIdGenerator = default!;
+    private EventRepository _repository = default!;
 
-    public EventRepositoryTests(PostgresFixture fixture)
+    public EventRepositoryTests(PostgresFixture postgres) : base(postgres) { }
+
+    public override async Task InitializeAsync()
     {
-        _fixture = fixture;
+        await base.InitializeAsync();
+        _eventFactory = Scope.ServiceProvider.GetRequiredService<EventFactory>();
+        _publicIdGenerator = Scope.ServiceProvider.GetRequiredService<PublicIdGenerator>();
+        _repository = Scope.ServiceProvider.GetRequiredService<EventRepository>();
     }
 
     [Fact]
     public async Task Save_ThenGetById_ShouldRoundTrip()
     {
-        var domainEvent = null as Event;
+        var domainEvent = _eventFactory.CreateEvent(
+            TestEvents.Name,
+            TestEvents.OrganizerUuid,
+            TestEvents.OrganizerName,
+            _publicIdGenerator.Generate());
 
-        await using (var provider = TestServices.Build(_fixture.ConnectionString))
-        {
-            await using var scope = provider.CreateAsyncScope();
-            var repository = scope.ServiceProvider.GetRequiredService<EventRepository>();
-            domainEvent = CreateEvent(scope.ServiceProvider);
-            await repository.Save(domainEvent);
-        }
+        await _repository.Save(domainEvent);
 
-        await using (var provider = TestServices.Build(_fixture.ConnectionString))
-        {
-            await using var scope = provider.CreateAsyncScope();
-            var repository = scope.ServiceProvider.GetRequiredService<EventRepository>();
-            var fetched = await repository.GetById(Guid.Parse(domainEvent.Id.Value));
+        var fetched = await _repository.GetById(Guid.Parse(domainEvent.Id.Value));
 
-            Assert.NotNull(fetched);
-            Assert.Equal(domainEvent.Id.Value, fetched.Id.Value);
-            Assert.Equal(domainEvent.PublicId.Value, fetched.PublicId.Value);
-            Assert.Equal("Team Meeting", fetched.Name);
-            var participant = Assert.Single(fetched.Participants);
-            Assert.Equal(domainEvent.OrganizerParticipantId.Value, participant.ParticipantId.Value);
-        }
+        Assert.NotNull(fetched);
+        Assert.Equal(domainEvent.Id.Value, fetched.Id.Value);
+        Assert.Equal(domainEvent.PublicId.Value, fetched.PublicId.Value);
+        Assert.Equal(TestEvents.Name, fetched.Name);
+        var participant = Assert.Single(fetched.Participants);
+        Assert.Equal(domainEvent.OrganizerParticipantId.Value, participant.ParticipantId.Value);
     }
 
     [Fact]
     public async Task GetById_ShouldReturnNullForUnknownId()
     {
-        await using var provider = TestServices.Build(_fixture.ConnectionString);
-        await using var scope = provider.CreateAsyncScope();
-
-        var repository = scope.ServiceProvider.GetRequiredService<EventRepository>();
-        var result = await repository.GetById(Guid.NewGuid());
+        var result = await _repository.GetById(Guid.NewGuid());
 
         Assert.Null(result);
-    }
-
-    private static Event CreateEvent(IServiceProvider services)
-    {
-        var eventFactory = services.GetRequiredService<EventFactory>();
-        var publicIdGenerator = services.GetRequiredService<PublicIdGenerator>();
-        return eventFactory.CreateEvent("Team Meeting", Guid.NewGuid().ToString(), "Alice", publicIdGenerator.Generate());
     }
 }

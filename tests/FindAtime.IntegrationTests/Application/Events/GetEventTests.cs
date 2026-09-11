@@ -1,44 +1,37 @@
 using Microsoft.Extensions.DependencyInjection;
 
 [Collection(PostgresCollection.Name)]
-public class GetEventTests
+public class GetEventTests : IntegrationTest
 {
-    private readonly PostgresFixture _fixture;
+    private CreateEvent _createEvent = default!;
+    private GetEvent _getEvent = default!;
 
-    public GetEventTests(PostgresFixture fixture)
+    public GetEventTests(PostgresFixture postgres) : base(postgres) { }
+
+    public override async Task InitializeAsync()
     {
-        _fixture = fixture;
+        await base.InitializeAsync();
+        _createEvent = Scope.ServiceProvider.GetRequiredService<CreateEvent>();
+        _getEvent = Scope.ServiceProvider.GetRequiredService<GetEvent>();
     }
 
     [Fact]
     public async Task Execute_ShouldReturnEventDto()
     {
-        await using var provider = TestServices.Build(_fixture.ConnectionString);
-        await using var scope = provider.CreateAsyncScope();
+        var eventId = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerUuid, TestEvents.OrganizerName);
 
-        var eventFactory = scope.ServiceProvider.GetRequiredService<EventFactory>();
-        var publicIdGenerator = scope.ServiceProvider.GetRequiredService<PublicIdGenerator>();
-        var repository = scope.ServiceProvider.GetRequiredService<EventRepository>();
-
-        var domainEvent = eventFactory.CreateEvent("Team Meeting", Guid.NewGuid().ToString(), "Alice", publicIdGenerator.Generate());
-        await repository.Save(domainEvent);
-
-        var getEvent = scope.ServiceProvider.GetRequiredService<GetEvent>();
-        var dto = await getEvent.Execute(Guid.Parse(domainEvent.Id.Value));
+        var dto = await _getEvent.Execute(Guid.Parse(eventId));
 
         Assert.NotNull(dto);
-        Assert.Equal(domainEvent.Id.Value, dto.Id);
-        Assert.Equal("Team Meeting", dto.Name);
+        Assert.Equal(eventId, dto.Id);
+        Assert.Equal(TestEvents.Name, dto.Name);
     }
 
     [Fact]
     public async Task Execute_ShouldReturnNullForUnknownId()
     {
-        await using var provider = TestServices.Build(_fixture.ConnectionString);
-        await using var scope = provider.CreateAsyncScope();
-
-        var getEvent = scope.ServiceProvider.GetRequiredService<GetEvent>();
-        var dto = await getEvent.Execute(Guid.NewGuid());
+        var dto = await _getEvent.Execute(Guid.NewGuid());
 
         Assert.Null(dto);
     }
