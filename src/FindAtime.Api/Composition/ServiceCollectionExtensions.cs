@@ -24,6 +24,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<GetEventByPublicId>();
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();
+        services.AddScoped<SearchEvents>();
 
         return services;
     }

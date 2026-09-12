@@ -11,6 +11,9 @@ Content-Type: application/json
     "organizerName": "Alice"
 }
 
+### Search events by guest
+GET {{baseUrl}}/events?guestId=11111111-1111-1111-1111-111111111111
+
 ### Get event by id
 GET {{baseUrl}}/events/f836fbaf-7b81-474e-9b53-478ad1ac2a15
 

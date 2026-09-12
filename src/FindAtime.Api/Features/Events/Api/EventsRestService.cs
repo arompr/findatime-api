@@ -19,6 +19,22 @@ public static class EventsRestService
             .WithName("CreateEvent");
 
         app.MapGet(
+                "/events",
+                async (string? guestId, SearchEvents searchEvents) =>
+                {
+                    if (string.IsNullOrWhiteSpace(guestId))
+                        return Results.BadRequest("guestId is required");
+
+                    if (!Guid.TryParse(guestId, out var parsed))
+                        return Results.BadRequest("guestId must be a valid uuid");
+
+                    IReadOnlyList<EventSummaryDto> events = await searchEvents.Execute(parsed);
+                    return Results.Ok(events);
+                }
+            )
+            .WithName("SearchEvents");
+
+        app.MapGet(
                 "/events/{id}",
                 async (Guid id, GetEvent getEvent) =>
                 {
