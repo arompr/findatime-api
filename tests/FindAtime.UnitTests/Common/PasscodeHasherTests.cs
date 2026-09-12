@@ -7,55 +7,55 @@ public class PasscodeHasherTests
     [Fact]
     public void Hash_ShouldProduceFixedSizeHashAndSalt()
     {
-        var (hash, salt) = _hasher.Hash("ABC234");
+        PasscodeHash passcodeHash = _hasher.Hash("ABC234");
 
-        Assert.Equal(PasscodePolicy.HashBytes, hash.Length);
-        Assert.Equal(PasscodePolicy.SaltBytes, salt.Length);
+        Assert.Equal(PasscodePolicy.HashBytes, passcodeHash.Hash.Length);
+        Assert.Equal(PasscodePolicy.SaltBytes, passcodeHash.Salt.Length);
     }
 
     [Fact]
     public void Verify_ShouldReturnTrueForMatchingPasscode()
     {
-        var (hash, salt) = _hasher.Hash("ABC234");
+        PasscodeHash passcodeHash = _hasher.Hash("ABC234");
 
-        Assert.True(_hasher.Verify("ABC234", hash, salt));
+        Assert.True(_hasher.Verify("ABC234", passcodeHash));
     }
 
     [Fact]
     public void Verify_ShouldReturnFalseForDifferentPasscode()
     {
-        var (hash, salt) = _hasher.Hash("ABC234");
+        PasscodeHash passcodeHash = _hasher.Hash("ABC234");
 
-        Assert.False(_hasher.Verify("XYZ789", hash, salt));
+        Assert.False(_hasher.Verify("XYZ789", passcodeHash));
     }
 
     [Fact]
     public void Verify_ShouldReturnFalseForTamperedHash()
     {
-        var (hash, salt) = _hasher.Hash("ABC234");
+        PasscodeHash passcodeHash = _hasher.Hash("ABC234");
 
-        hash[0] ^= 0xFF;
+        passcodeHash.Hash[0] ^= 0xFF;
 
-        Assert.False(_hasher.Verify("ABC234", hash, salt));
+        Assert.False(_hasher.Verify("ABC234", passcodeHash));
     }
 
     [Fact]
     public void Verify_ShouldReturnFalseForTamperedSalt()
     {
-        var (hash, salt) = _hasher.Hash("ABC234");
+        PasscodeHash passcodeHash = _hasher.Hash("ABC234");
 
-        salt[0] ^= 0xFF;
+        passcodeHash.Salt[0] ^= 0xFF;
 
-        Assert.False(_hasher.Verify("ABC234", hash, salt));
+        Assert.False(_hasher.Verify("ABC234", passcodeHash));
     }
 
     [Fact]
     public void Hash_ShouldUseDifferentSaltEachTime()
     {
-        var (hash1, salt1) = _hasher.Hash("ABC234");
-        var (hash2, salt2) = _hasher.Hash("ABC234");
+        PasscodeHash passcodeHash1 = _hasher.Hash("ABC234");
+        PasscodeHash passcodeHash2 = _hasher.Hash("ABC234");
 
-        Assert.NotEqual(salt1, salt2);
-        Assert.NotEqual(hash1, hash2);
+        Assert.NotEqual(passcodeHash1.Salt, passcodeHash2.Salt);
+        Assert.NotEqual(passcodeHash1.Hash, passcodeHash2.Hash);
     }
 }

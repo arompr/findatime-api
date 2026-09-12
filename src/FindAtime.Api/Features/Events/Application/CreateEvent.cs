@@ -24,9 +24,9 @@ public class CreateEvent
     {
         PublicId publicId = this._publicIdGenerator.Generate();
         Passcode passcode = this._passcodeGenerator.Generate();
-        (byte[] hash, byte[] salt) = this._passcodeHasher.Hash(passcode.Value);
+        PasscodeHash passcodeHash = this._passcodeHasher.Hash(passcode.Value);
 
-        Event domainEvent = this._eventFactory.CreateEvent(eventName, guestId, organizerName, publicId, hash, salt);
+        Event domainEvent = this._eventFactory.CreateEvent(eventName, guestId, organizerName, publicId, passcodeHash);
         await this._eventRepository.Save(domainEvent);
 
         return new CreateEventResponse(domainEvent.Id.Value, domainEvent.PublicId.Value, passcode.Value);

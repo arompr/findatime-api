@@ -15,7 +15,7 @@ public class EventFactoryTests
     {
         var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, [1, 2, 3], [4, 5, 6]);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, PasscodeHash.FromBytes([1, 2, 3], [4, 5, 6]));
 
         Assert.Equal("Team Meeting", @event.Name);
     }
@@ -25,7 +25,7 @@ public class EventFactoryTests
     {
         var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, [1, 2, 3], [4, 5, 6]);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, PasscodeHash.FromBytes([1, 2, 3], [4, 5, 6]));
 
         Assert.Equal(publicId, @event.PublicId);
     }
@@ -35,7 +35,7 @@ public class EventFactoryTests
     {
         var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, [1, 2, 3], [4, 5, 6]);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, PasscodeHash.FromBytes([1, 2, 3], [4, 5, 6]));
 
         Assert.False(string.IsNullOrEmpty(@event.Id.Value));
     }
@@ -45,7 +45,7 @@ public class EventFactoryTests
     {
         var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, [1, 2, 3], [4, 5, 6]);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, PasscodeHash.FromBytes([1, 2, 3], [4, 5, 6]));
 
         Participant organizer = Assert.Single(@event.Participants);
         Assert.Equal("Alice", organizer.Name);
@@ -56,9 +56,9 @@ public class EventFactoryTests
     {
         var publicId = PublicId.FromString("abc123");
 
-        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, [1, 2, 3], [4, 5, 6]);
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, PasscodeHash.FromBytes([1, 2, 3], [4, 5, 6]));
 
-        Assert.Equal([1, 2, 3], @event.PasscodeHash);
-        Assert.Equal([4, 5, 6], @event.PasscodeSalt);
+        Assert.Equal([1, 2, 3], @event.PasscodeHash.Hash);
+        Assert.Equal([4, 5, 6], @event.PasscodeHash.Salt);
     }
 }

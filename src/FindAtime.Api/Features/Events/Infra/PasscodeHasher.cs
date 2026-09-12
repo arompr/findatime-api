@@ -2,17 +2,17 @@ using System.Security.Cryptography;
 
 public class PasscodeHasher
 {
-    public (byte[] Hash, byte[] Salt) Hash(string passcode)
+    public PasscodeHash Hash(string passcode)
     {
         byte[] salt = RandomNumberGenerator.GetBytes(PasscodePolicy.SaltBytes);
         byte[] hash = ComputeHash(passcode, salt);
-        return (hash, salt);
+        return PasscodeHash.FromBytes(hash, salt);
     }
 
-    public bool Verify(string passcode, byte[] hash, byte[] salt)
+    public bool Verify(string passcode, PasscodeHash passcodeHash)
     {
-        byte[] candidate = ComputeHash(passcode, salt);
-        return CryptographicOperations.FixedTimeEquals(candidate, hash);
+        byte[] candidate = ComputeHash(passcode, passcodeHash.Salt);
+        return CryptographicOperations.FixedTimeEquals(candidate, passcodeHash.Hash);
     }
 
     private static byte[] ComputeHash(string passcode, byte[] salt)

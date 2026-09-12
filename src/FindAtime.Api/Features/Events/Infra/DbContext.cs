@@ -23,6 +23,12 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
             entity.Property(e => e.OrganizerParticipantId).HasConversion(
                 id => Guid.Parse(id.Value),
                 value => ParticipantId.FromString(value.ToString()));
+
+            entity.ComplexProperty(e => e.PasscodeHash, complex =>
+            {
+                complex.Property(p => p.Hash).HasColumnName("passcode_hash").IsRequired();
+                complex.Property(p => p.Salt).HasColumnName("passcode_salt").IsRequired();
+            });
         });
 
         modelBuilder.Entity<Participant>(entity =>

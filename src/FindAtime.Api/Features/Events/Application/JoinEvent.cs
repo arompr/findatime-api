@@ -17,7 +17,7 @@ public class JoinEvent
         if (domainEvent is null)
             throw new EventNotFoundException(eventId);
 
-        if (!this._passcodeHasher.Verify(passcode, domainEvent.PasscodeHash, domainEvent.PasscodeSalt))
+        if (!this._passcodeHasher.Verify(passcode, domainEvent.PasscodeHash))
             throw new InvalidPasscodeException(eventId);
 
         var requestGuestId = GuestId.FromString(guestId);

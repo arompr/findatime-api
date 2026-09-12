@@ -25,8 +25,7 @@ public class EventRepositoryTests : IntegrationTest
             TestEvents.OrganizerGuestId,
             TestEvents.OrganizerName,
             _publicIdGenerator.Generate(),
-            [1, 2, 3],
-            [4, 5, 6]);
+            PasscodeHash.FromBytes([1, 2, 3], [4, 5, 6]));
 
         await _repository.Save(domainEvent);
 

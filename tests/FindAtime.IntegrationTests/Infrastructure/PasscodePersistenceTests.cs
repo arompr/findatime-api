@@ -26,7 +26,7 @@ public class PasscodePersistenceTests : IntegrationTest
         var persisted = await _repository.GetById(Guid.Parse(response.EventId));
 
         Assert.NotNull(persisted);
-        Assert.True(_hasher.Verify(response.Passcode, persisted.PasscodeHash, persisted.PasscodeSalt));
+        Assert.True(_hasher.Verify(response.Passcode, persisted.PasscodeHash));
     }
 
     [Fact]
@@ -38,6 +38,6 @@ public class PasscodePersistenceTests : IntegrationTest
         var persisted = await _repository.GetById(Guid.Parse(response.EventId));
 
         Assert.NotNull(persisted);
-        Assert.False(_hasher.Verify("ZZZZZZ", persisted.PasscodeHash, persisted.PasscodeSalt));
+        Assert.False(_hasher.Verify("ZZZZZZ", persisted.PasscodeHash));
     }
 }
