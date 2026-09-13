@@ -12,7 +12,12 @@ public static class EventsRestService
                     if (string.IsNullOrWhiteSpace(requestParams.OrganizerName))
                         return Results.BadRequest("organizerName is required");
 
-                    var response = await createEvent.Execute(requestParams.Name, requestParams.GuestId, requestParams.OrganizerName, requestParams.IsPasscodeProtected);
+                    var response = await createEvent.Execute(
+                        requestParams.Name,
+                        requestParams.GuestId,
+                        requestParams.OrganizerName,
+                        requestParams.IsPasscodeProtected
+                    );
                     return Results.Created($"/events/{response.PublicId}", response);
                 }
             )
@@ -21,7 +26,7 @@ public static class EventsRestService
 
         app.MapGet(
                 "/events",
-                async (string? guestId, SearchEvents searchEvents) =>
+                async (string? guestId, ReadEventService readEventService) =>
                 {
                     if (string.IsNullOrWhiteSpace(guestId))
                         return Results.BadRequest("guestId is required");
@@ -29,9 +34,10 @@ public static class EventsRestService
                     if (!Guid.TryParse(guestId, out var parsed))
                         return Results.BadRequest("guestId must be a valid uuid");
 
-                    IReadOnlyList<EventSummaryDto> events = await searchEvents.Execute(parsed);
+                    IReadOnlyList<EventSummaryDto> events = await readEventService.SearchEvents(parsed);
                     var response = new SearchEventsResponse(
-                        events.Select(e => new EventSummaryResponse(e.PublicId, e.Name)).ToList());
+                        events.Select(e => new EventSummaryResponse(e.PublicId, e.Name, e.IsOrganizer)).ToList()
+                    );
                     return Results.Ok(response);
                 }
             )
@@ -40,9 +46,13 @@ public static class EventsRestService
 
         app.MapGet(
                 "/events/{publicId}",
-                async (string publicId, GetEvent getEvent) =>
+                async (string publicId, ReadEventService readEventService) =>
                 {
-                    GetEventResponse response = await getEvent.Execute(publicId);
+                    EventDto? dto = await readEventService.GetEventByPublicId(publicId);
+                    if (dto is null)
+                        throw new EventNotFoundException(publicId);
+
+                    GetEventResponse response = new(dto.PublicId, dto.Name, dto.IsPasscodeProtected);
                     return Results.Ok(response);
                 }
             )
@@ -61,7 +71,11 @@ public static class EventsRestService
                         return Results.BadRequest("participantName is required");
 
                     JoinEventResponse response = await joinEvent.Execute(
-                        id, requestParams.Passcode, requestParams.GuestId, requestParams.ParticipantName);
+                        id,
+                        requestParams.Passcode,
+                        requestParams.GuestId,
+                        requestParams.ParticipantName
+                    );
 
                     return Results.Created($"/events/{id}/participants/{response.ParticipantId}", response);
                 }

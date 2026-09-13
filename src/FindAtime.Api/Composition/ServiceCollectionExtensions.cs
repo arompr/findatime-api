@@ -21,10 +21,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PasscodeHasher>();
         services.AddSingleton<PasscodeFactory>();
         services.AddScoped<CreateEvent>();
-        services.AddScoped<GetEvent>();
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();
-        services.AddScoped<SearchEvents>();
 
         return services;
     }

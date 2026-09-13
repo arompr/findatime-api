@@ -6,7 +6,7 @@ public class SearchEventsTests : IntegrationTest
     private CreateEvent _createEvent = default!;
     private JoinEvent _joinEvent = default!;
     private LeaveEvent _leaveEvent = default!;
-    private SearchEvents _searchEvents = default!;
+    private ReadEventService _readEventService = default!;
 
     public SearchEventsTests(PostgresFixture postgres) : base(postgres) { }
 
@@ -16,7 +16,7 @@ public class SearchEventsTests : IntegrationTest
         _createEvent = Scope.ServiceProvider.GetRequiredService<CreateEvent>();
         _joinEvent = Scope.ServiceProvider.GetRequiredService<JoinEvent>();
         _leaveEvent = Scope.ServiceProvider.GetRequiredService<LeaveEvent>();
-        _searchEvents = Scope.ServiceProvider.GetRequiredService<SearchEvents>();
+        _readEventService = Scope.ServiceProvider.GetRequiredService<ReadEventService>();
     }
 
     private const string OtherGuestId = "22222222-2222-2222-2222-222222222222";
@@ -30,11 +30,11 @@ public class SearchEventsTests : IntegrationTest
         var second = await _createEvent.Execute(
             "Second", TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        var results = await _searchEvents.Execute(Guid.Parse(TestEvents.OrganizerGuestId));
+        var results = await _readEventService.SearchEvents(Guid.Parse(TestEvents.OrganizerGuestId));
 
         Assert.Equal(2, results.Count);
-        Assert.Contains(results, r => r.PublicId == first.PublicId && r.Name == "First");
-        Assert.Contains(results, r => r.PublicId == second.PublicId && r.Name == "Second");
+        Assert.Contains(results, r => r.PublicId == first.PublicId && r.Name == "First" && r.IsOrganizer);
+        Assert.Contains(results, r => r.PublicId == second.PublicId && r.Name == "Second" && r.IsOrganizer);
     }
 
     [Fact]
@@ -48,9 +48,10 @@ public class SearchEventsTests : IntegrationTest
         await _joinEvent.Execute(Guid.Parse(first.EventId), first.Passcode, OtherGuestId, OtherName);
         await _joinEvent.Execute(Guid.Parse(second.EventId), second.Passcode, OtherGuestId, OtherName);
 
-        var results = await _searchEvents.Execute(Guid.Parse(OtherGuestId));
+        var results = await _readEventService.SearchEvents(Guid.Parse(OtherGuestId));
 
         Assert.Equal(2, results.Count);
+        Assert.All(results, r => Assert.False(r.IsOrganizer));
     }
 
     [Fact]
@@ -63,17 +64,17 @@ public class SearchEventsTests : IntegrationTest
 
         await _joinEvent.Execute(Guid.Parse(joined.EventId), joined.Passcode, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
 
-        var results = await _searchEvents.Execute(Guid.Parse(TestEvents.OrganizerGuestId));
+        var results = await _readEventService.SearchEvents(Guid.Parse(TestEvents.OrganizerGuestId));
 
         Assert.Equal(2, results.Count);
-        Assert.Contains(results, r => r.PublicId == organized.PublicId);
-        Assert.Contains(results, r => r.PublicId == joined.PublicId);
+        Assert.Contains(results, r => r.PublicId == organized.PublicId && r.IsOrganizer);
+        Assert.Contains(results, r => r.PublicId == joined.PublicId && !r.IsOrganizer);
     }
 
     [Fact]
     public async Task Execute_ShouldReturnEmptyListForUnknownGuest()
     {
-        var results = await _searchEvents.Execute(Guid.NewGuid());
+        var results = await _readEventService.SearchEvents(Guid.NewGuid());
 
         Assert.Empty(results);
     }
@@ -87,7 +88,7 @@ public class SearchEventsTests : IntegrationTest
 
         await _leaveEvent.Execute(Guid.Parse(created.EventId), OtherGuestId);
 
-        var results = await _searchEvents.Execute(Guid.Parse(OtherGuestId));
+        var results = await _readEventService.SearchEvents(Guid.Parse(OtherGuestId));
 
         Assert.Empty(results);
     }
@@ -98,7 +99,7 @@ public class SearchEventsTests : IntegrationTest
         await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        var results = await _searchEvents.Execute(Guid.Parse(OtherGuestId));
+        var results = await _readEventService.SearchEvents(Guid.Parse(OtherGuestId));
 
         Assert.Empty(results);
     }

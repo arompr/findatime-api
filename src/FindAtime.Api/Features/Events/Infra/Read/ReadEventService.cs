@@ -12,7 +12,7 @@ public class ReadEventService
         _connectionProvider = connectionProvider;
     }
 
-    public async Task<GetEventResponse?> GetEventByPublicId(string publicId)
+    public async Task<EventDto?> GetEventByPublicId(string publicId)
     {
         var connection = await _connectionProvider.OpenAsync();
 
@@ -21,7 +21,7 @@ public class ReadEventService
         if (!await reader.ReadAsync())
             return null;
 
-        return new GetEventResponse(
+        return new EventDto(
             reader.GetString(reader.GetOrdinal("public_id")),
             reader.GetString(reader.GetOrdinal("name")),
             reader.GetBoolean(reader.GetOrdinal("is_passcode_protected"))
@@ -39,7 +39,8 @@ public class ReadEventService
         {
             results.Add(new EventSummaryDto(
                 reader.GetString(reader.GetOrdinal("public_id")),
-                reader.GetString(reader.GetOrdinal("name"))
+                reader.GetString(reader.GetOrdinal("name")),
+                reader.GetBoolean(reader.GetOrdinal("is_organizer"))
             ));
         }
 

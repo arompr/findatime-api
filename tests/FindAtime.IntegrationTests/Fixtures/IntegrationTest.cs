@@ -35,10 +35,8 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddSingleton<PasscodeHasher>();
         services.AddSingleton<PasscodeFactory>();
         services.AddScoped<CreateEvent>();
-        services.AddScoped<GetEvent>();
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();
-        services.AddScoped<SearchEvents>();
 
         _provider = services.BuildServiceProvider();
         Scope = _provider.CreateScope();

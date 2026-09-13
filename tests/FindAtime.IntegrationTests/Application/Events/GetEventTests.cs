@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 public class GetEventTests : IntegrationTest
 {
     private CreateEvent _createEvent = default!;
-    private GetEvent _getEvent = default!;
+    private ReadEventService _readEventService = default!;
 
     public GetEventTests(PostgresFixture postgres) : base(postgres) { }
 
@@ -12,16 +12,16 @@ public class GetEventTests : IntegrationTest
     {
         await base.InitializeAsync();
         _createEvent = Scope.ServiceProvider.GetRequiredService<CreateEvent>();
-        _getEvent = Scope.ServiceProvider.GetRequiredService<GetEvent>();
+        _readEventService = Scope.ServiceProvider.GetRequiredService<ReadEventService>();
     }
 
     [Fact]
-    public async Task Execute_ShouldReturnEventDto()
+    public async Task GetEventByPublicId_ShouldReturnEventDto()
     {
         var response = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        var dto = await _getEvent.Execute(response.PublicId);
+        var dto = await _readEventService.GetEventByPublicId(response.PublicId);
 
         Assert.NotNull(dto);
         Assert.Equal(response.PublicId, dto.PublicId);
@@ -30,8 +30,10 @@ public class GetEventTests : IntegrationTest
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowForUnknownPublicId()
+    public async Task GetEventByPublicId_ShouldReturnNullForUnknownPublicId()
     {
-        await Assert.ThrowsAsync<EventNotFoundException>(() => _getEvent.Execute("nonexistent123"));
+        var dto = await _readEventService.GetEventByPublicId("nonexistent123");
+
+        Assert.Null(dto);
     }
 }
