@@ -24,7 +24,7 @@ public class JoinEventTests : IntegrationTest
     public async Task Execute_ShouldJoinNewParticipant()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         var response = await _joinEvent.Execute(
             Guid.Parse(created.EventId), created.Passcode, FriendGuestId, FriendName);
@@ -37,20 +37,46 @@ public class JoinEventTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Execute_ShouldJoinUnprotectedEventWithoutPasscode()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        var response = await _joinEvent.Execute(
+            Guid.Parse(created.EventId), null, FriendGuestId, FriendName);
+
+        Assert.Equal(FriendName, response.Name);
+
+        var persisted = await _repository.GetById(Guid.Parse(created.EventId));
+        Assert.NotNull(persisted);
+        Assert.Equal(2, persisted.Participants.Count);
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowForWrongPasscode()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await Assert.ThrowsAsync<InvalidPasscodeException>(() => _joinEvent.Execute(
             Guid.Parse(created.EventId), "WRONG6", FriendGuestId, FriendName));
     }
 
     [Fact]
+    public async Task Execute_ShouldThrowForMissingPasscodeOnProtectedEvent()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
+
+        await Assert.ThrowsAsync<InvalidPasscodeException>(() => _joinEvent.Execute(
+            Guid.Parse(created.EventId), null, FriendGuestId, FriendName));
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowWhenRejoiningWithSameName()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await _joinEvent.Execute(Guid.Parse(created.EventId), created.Passcode, FriendGuestId, FriendName);
 
@@ -65,7 +91,7 @@ public class JoinEventTests : IntegrationTest
     public async Task Execute_ShouldThrowWhenRejoiningWithDifferentName()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await _joinEvent.Execute(Guid.Parse(created.EventId), created.Passcode, FriendGuestId, FriendName);
 
@@ -77,7 +103,7 @@ public class JoinEventTests : IntegrationTest
     public async Task Execute_ShouldThrowWhenOrganizerTriesToJoin()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await Assert.ThrowsAsync<ParticipantAlreadyJoinedException>(() => _joinEvent.Execute(
             Guid.Parse(created.EventId), created.Passcode, TestEvents.OrganizerGuestId, TestEvents.OrganizerName));

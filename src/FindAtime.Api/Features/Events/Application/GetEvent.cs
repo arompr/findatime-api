@@ -7,12 +7,12 @@ public class GetEvent
         this._readEventService = readEventService;
     }
 
-    public async Task<EventReadDto> Execute(Guid eventId)
+    public async Task<GetEventResponse> Execute(string publicId)
     {
-        EventReadDto? eventReadDto = await this._readEventService.GetEvent(eventId);
-        if (eventReadDto is null)
-            throw new EventNotFoundException(eventId);
+        GetEventResponse? response = await this._readEventService.GetEventByPublicId(publicId);
+        if (response is null)
+            throw new EventNotFoundException(publicId);
 
-        return eventReadDto;
+        return response;
     }
 }

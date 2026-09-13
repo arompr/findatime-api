@@ -2,7 +2,6 @@ using Dapper;
 
 public class ReadEventService
 {
-    private static readonly string GetEventSql = Sql.Load("get_event.sql");
     private static readonly string GetEventByPublicIdSql = Sql.Load("get_event_by_public_id.sql");
     private static readonly string SearchEventsSql = Sql.Load("search_events.sql");
 
@@ -13,23 +12,7 @@ public class ReadEventService
         _connectionProvider = connectionProvider;
     }
 
-    public async Task<EventReadDto?> GetEvent(Guid eventId)
-    {
-        var connection = await _connectionProvider.OpenAsync();
-
-        await using var reader = await connection.ExecuteReaderAsync(GetEventSql, new { id = eventId });
-
-        if (!await reader.ReadAsync())
-            return null;
-
-        return new EventReadDto(
-            reader.GetGuid(reader.GetOrdinal("id")).ToString(),
-            reader.GetString(reader.GetOrdinal("name")),
-            reader.GetBoolean(reader.GetOrdinal("is_passcode_protected"))
-        );
-    }
-
-    public async Task<GetEventByPublicIdResponse?> GetEventByPublicId(string publicId)
+    public async Task<GetEventResponse?> GetEventByPublicId(string publicId)
     {
         var connection = await _connectionProvider.OpenAsync();
 
@@ -38,8 +21,8 @@ public class ReadEventService
         if (!await reader.ReadAsync())
             return null;
 
-        return new GetEventByPublicIdResponse(
-            reader.GetGuid(reader.GetOrdinal("id")).ToString(),
+        return new GetEventResponse(
+            reader.GetString(reader.GetOrdinal("public_id")),
             reader.GetString(reader.GetOrdinal("name")),
             reader.GetBoolean(reader.GetOrdinal("is_passcode_protected"))
         );

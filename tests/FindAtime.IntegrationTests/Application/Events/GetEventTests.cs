@@ -19,18 +19,19 @@ public class GetEventTests : IntegrationTest
     public async Task Execute_ShouldReturnEventDto()
     {
         var response = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        var dto = await _getEvent.Execute(Guid.Parse(response.EventId));
+        var dto = await _getEvent.Execute(response.PublicId);
 
         Assert.NotNull(dto);
-        Assert.Equal(response.EventId, dto.Id);
+        Assert.Equal(response.PublicId, dto.PublicId);
         Assert.Equal(TestEvents.Name, dto.Name);
+        Assert.True(dto.IsPasscodeProtected);
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowForUnknownId()
+    public async Task Execute_ShouldThrowForUnknownPublicId()
     {
-        await Assert.ThrowsAsync<EventNotFoundException>(() => _getEvent.Execute(Guid.NewGuid()));
+        await Assert.ThrowsAsync<EventNotFoundException>(() => _getEvent.Execute("nonexistent123"));
     }
 }

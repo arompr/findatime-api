@@ -20,7 +20,7 @@ public class CreateEventTests : IntegrationTest
     public async Task Execute_ShouldPersistEventWithOrganizer()
     {
         var response = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         var persisted = await _repository.GetById(Guid.Parse(response.EventId));
 
@@ -35,17 +35,28 @@ public class CreateEventTests : IntegrationTest
     public async Task Execute_ShouldReturnPasscodeInResponse()
     {
         var response = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        Assert.Equal(6, response.Passcode.Length);
+        Assert.True(response.IsPasscodeProtected);
+        Assert.Equal(6, response.Passcode!.Length);
         Assert.Matches(new Regex("^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$"), response.Passcode);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldReturnNoPasscodeWhenUnprotected()
+    {
+        var response = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        Assert.False(response.IsPasscodeProtected);
+        Assert.Null(response.Passcode);
     }
 
     [Fact]
     public async Task Execute_ShouldReturnPublicIdInResponse()
     {
         var response = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         Assert.False(string.IsNullOrEmpty(response.PublicId));
     }

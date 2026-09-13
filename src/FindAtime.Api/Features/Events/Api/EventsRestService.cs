@@ -13,7 +13,7 @@ public static class EventsRestService
                         return Results.BadRequest("organizerName is required");
 
                     var response = await createEvent.Execute(requestParams.Name, requestParams.GuestId, requestParams.OrganizerName, requestParams.IsPasscodeProtected);
-                    return Results.Created($"/events/{response.EventId}", response);
+                    return Results.Created($"/events/{response.PublicId}", response);
                 }
             )
             .WithName("CreateEvent")
@@ -37,27 +37,15 @@ public static class EventsRestService
             .Produces<EventSummaryDto[]>(StatusCodes.Status200OK);
 
         app.MapGet(
-                "/events/{id}",
-                async (Guid id, GetEvent getEvent) =>
+                "/events/{publicId}",
+                async (string publicId, GetEvent getEvent) =>
                 {
-                    EventReadDto eventReadDto = await getEvent.Execute(id);
-                    return Results.Ok(eventReadDto);
-                }
-            )
-            .WithName("GetEvent")
-            .Produces<EventReadDto>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
-
-        app.MapGet(
-                "/events/by-public-id/{publicId}",
-                async (string publicId, GetEventByPublicId getEventByPublicId) =>
-                {
-                    GetEventByPublicIdResponse response = await getEventByPublicId.Execute(publicId);
+                    GetEventResponse response = await getEvent.Execute(publicId);
                     return Results.Ok(response);
                 }
             )
-            .WithName("GetEventByPublicId")
-            .Produces<GetEventByPublicIdResponse>(StatusCodes.Status200OK)
+            .WithName("GetEvent")
+            .Produces<GetEventResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapPost(

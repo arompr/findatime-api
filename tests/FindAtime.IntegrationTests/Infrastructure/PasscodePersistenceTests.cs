@@ -21,23 +21,23 @@ public class PasscodePersistenceTests : IntegrationTest
     public async Task CreatedEvent_ShouldPersistVerifiablePasscodeHash()
     {
         var response = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         var persisted = await _repository.GetById(Guid.Parse(response.EventId));
 
         Assert.NotNull(persisted);
-        Assert.True(_hasher.Verify(response.Passcode, persisted.PasscodeHash));
+        Assert.True(_hasher.Verify(response.Passcode!, persisted.PasscodeHash!));
     }
 
     [Fact]
     public async Task CreatedEvent_ShouldNotVerifyAgainstWrongPasscode()
     {
         var response = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         var persisted = await _repository.GetById(Guid.Parse(response.EventId));
 
         Assert.NotNull(persisted);
-        Assert.False(_hasher.Verify("ZZZZZZ", persisted.PasscodeHash));
+        Assert.False(_hasher.Verify("ZZZZZZ", persisted.PasscodeHash!));
     }
 }

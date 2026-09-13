@@ -58,7 +58,18 @@ public class EventFactoryTests
 
         var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, PasscodeHash.FromBytes([1, 2, 3], [4, 5, 6]));
 
-        Assert.Equal([1, 2, 3], @event.PasscodeHash.Hash);
+        Assert.Equal([1, 2, 3], @event.PasscodeHash!.Hash);
         Assert.Equal([4, 5, 6], @event.PasscodeHash.Salt);
+    }
+
+    [Fact]
+    public void CreateEvent_ShouldNotBePasscodeProtectedWhenNoHash()
+    {
+        var publicId = PublicId.FromString("abc123");
+
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, null);
+
+        Assert.False(@event.IsPasscodeProtected);
+        Assert.Null(@event.PasscodeHash);
     }
 }

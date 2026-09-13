@@ -25,7 +25,7 @@ public class LeaveEventTests : IntegrationTest
     public async Task Execute_ShouldRemoveParticipant()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
         await _joinEvent.Execute(Guid.Parse(created.EventId), created.Passcode, FriendGuestId, "Bob");
 
         await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
@@ -38,7 +38,7 @@ public class LeaveEventTests : IntegrationTest
     public async Task Execute_ShouldBeIdempotentWhenAlreadyLeft()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
         await _joinEvent.Execute(Guid.Parse(created.EventId), created.Passcode, FriendGuestId, "Bob");
 
         await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
@@ -52,7 +52,7 @@ public class LeaveEventTests : IntegrationTest
     public async Task Execute_ShouldThrowWhenOrganizerLeaves()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await Assert.ThrowsAsync<OrganizerCannotLeaveException>(() => _leaveEvent.Execute(
             Guid.Parse(created.EventId), TestEvents.OrganizerGuestId));
@@ -71,7 +71,7 @@ public class LeaveEventTests : IntegrationTest
     public async Task Execute_ShouldBeNoOpForGuestNotInEvent()
     {
         var created = await _createEvent.Execute(
-            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await _leaveEvent.Execute(Guid.Parse(created.EventId), FriendGuestId);
 
