@@ -36,6 +36,11 @@ bld/
 *.nupkg.metadata
 !packages/*/build/*
 
+## Typescript client (npm / GitHub Packages)
+typescript-client/node_modules/
+typescript-client/src/generated/
+typescript-client/dist/
+
 ## OS
 .DS_Store
 Thumbs.db

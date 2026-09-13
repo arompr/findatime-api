@@ -14,6 +14,14 @@ and let participants indicate availability.
 - [Database migrations](Docs/db-migrations.md) — how to change the schema and
   apply migrations
 
+## API typescript client
+
+TypeScript types for the API are generated from the OpenAPI document and
+published to GitHub Packages as `@arompr/findatime-typescript-client` (see
+[`typescript-client/`](typescript-client/README.md)). Publishing is done manually via the
+`publish-typescript-client` GitHub Actions workflow. To regenerate locally, run
+`make typescript-client`.
+
 ## Prerequisites
 
 - .NET SDK 10

@@ -16,7 +16,8 @@ public static class EventsRestService
                     return Results.Created($"/events/{response.EventId}", response);
                 }
             )
-            .WithName("CreateEvent");
+            .WithName("CreateEvent")
+            .Produces<CreateEventResponse>(StatusCodes.Status201Created);
 
         app.MapGet(
                 "/events",
@@ -32,7 +33,8 @@ public static class EventsRestService
                     return Results.Ok(events);
                 }
             )
-            .WithName("SearchEvents");
+            .WithName("SearchEvents")
+            .Produces<EventSummaryDto[]>(StatusCodes.Status200OK);
 
         app.MapGet(
                 "/events/{id}",
@@ -42,7 +44,9 @@ public static class EventsRestService
                     return Results.Ok(eventReadDto);
                 }
             )
-            .WithName("GetEvent");
+            .WithName("GetEvent")
+            .Produces<EventReadDto>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
         app.MapGet(
                 "/events/by-public-id/{publicId}",
@@ -52,7 +56,9 @@ public static class EventsRestService
                     return Results.Ok(response);
                 }
             )
-            .WithName("GetEventByPublicId");
+            .WithName("GetEventByPublicId")
+            .Produces<GetEventByPublicIdResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
         app.MapPost(
                 "/events/{id}/join",
@@ -73,7 +79,8 @@ public static class EventsRestService
                     return Results.Created($"/events/{id}/participants/{response.ParticipantId}", response);
                 }
             )
-            .WithName("JoinEvent");
+            .WithName("JoinEvent")
+            .Produces<JoinEventResponse>(StatusCodes.Status201Created);
 
         app.MapPost(
                 "/events/{id}/leave",
@@ -87,6 +94,7 @@ public static class EventsRestService
                     return Results.NoContent();
                 }
             )
-            .WithName("LeaveEvent");
+            .WithName("LeaveEvent")
+            .Produces(StatusCodes.Status204NoContent);
     }
 }

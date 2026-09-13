@@ -1,0 +1,23 @@
+{
+  "name": "@arompr/findatime-typescript-client",
+  "version": "0.0.0",
+  "description": "TypeScript types and fetch client for the Findatime REST API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "scripts": {
+    "gen": "openapi --input ../src/FindAtime.Api/obj/FindAtime.Api.json --output src/generated --useUnionTypes",
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run gen && npm run build"
+  },
+  "devDependencies": {
+    "openapi-typescript-codegen": "^0.29.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,83 @@
+name: Publish typescript client
+
+on:
+    workflow_dispatch:
+        inputs:
+            ref:
+                description: "Branch or ref to publish from (e.g. develop, main, or a tag)"
+                required: true
+                type: string
+                default: "develop"
+            version:
+                description: "Version to publish (valid semver, e.g. 0.1.0 or 0.1.0-staging.1)"
+                required: true
+                type: string
+
+permissions:
+    contents: read
+    packages: write
+    id-token: write
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  ref: ${{ inputs.ref }}
+                  fetch-depth: 0
+
+            - uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Restore .NET
+              run: dotnet restore src/FindAtime.Api/FindAtime.Api.csproj
+
+            - name: Build API (emits openapi/v1.json)
+              run: dotnet build src/FindAtime.Api/FindAtime.Api.csproj -c Release --no-restore
+
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: "22.x"
+                  registry-url: https://npm.pkg.github.com/
+                  scope: "@arompr"
+
+            - name: Install typescript client deps
+              working-directory: typescript-client
+              run: npm ci
+
+            - name: Generate types from OpenAPI
+              working-directory: typescript-client
+              run: npm run gen
+
+            - name: Validate version
+              id: version
+              env:
+                  VERSION: ${{ inputs.version }}
+              run: |
+                  set -euo pipefail
+                  if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+                    echo "::error::'$VERSION' is not a valid semver. Examples: 0.1.0, 0.1.0-staging.1, 1.2.3-rc.4+build.7"
+                    exit 1
+                  fi
+                  echo "new_version=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "Publishing version $VERSION"
+
+            - name: Set package.json version
+              working-directory: typescript-client
+              run: npm version "${{ steps.version.outputs.new_version }}" --no-git-tag-version --allow-same-version
+
+            - name: Build TypeScript
+              working-directory: typescript-client
+              run: npm run build
+
+            - name: Publish to GitHub Packages
+              working-directory: typescript-client
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: npm publish --provenance
+
+            - name: Reset working tree
+              working-directory: typescript-client
+              run: git checkout -- package.json package-lock.json || true
