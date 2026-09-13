@@ -11,13 +11,14 @@ public class JoinEvent
         this._passcodeHasher = passcodeHasher;
     }
 
-    public async Task<JoinEventResponse> Execute(Guid eventId, string passcode, string guestId, string participantName)
+    public async Task<JoinEventResponse> Execute(Guid eventId, string? passcode, string guestId, string participantName)
     {
         Event? domainEvent = await this._eventRepository.GetById(eventId);
         if (domainEvent is null)
             throw new EventNotFoundException(eventId);
 
-        if (!this._passcodeHasher.Verify(passcode, domainEvent.PasscodeHash))
+        if (domainEvent.IsPasscodeProtected
+            && (string.IsNullOrEmpty(passcode) || !this._passcodeHasher.Verify(passcode, domainEvent.PasscodeHash!)))
             throw new InvalidPasscodeException(eventId);
 
         var requestGuestId = GuestId.FromString(guestId);

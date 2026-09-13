@@ -1,2 +1,2 @@
-public record EventReadDto(string Id, string Name);
+public record EventReadDto(string Id, string Name, bool IsPasscodeProtected);
 

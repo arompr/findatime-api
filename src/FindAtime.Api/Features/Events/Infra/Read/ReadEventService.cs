@@ -24,7 +24,8 @@ public class ReadEventService
 
         return new EventReadDto(
             reader.GetGuid(reader.GetOrdinal("id")).ToString(),
-            reader.GetString(reader.GetOrdinal("name"))
+            reader.GetString(reader.GetOrdinal("name")),
+            reader.GetBoolean(reader.GetOrdinal("is_passcode_protected"))
         );
     }
 
@@ -39,7 +40,8 @@ public class ReadEventService
 
         return new GetEventByPublicIdResponse(
             reader.GetGuid(reader.GetOrdinal("id")).ToString(),
-            reader.GetString(reader.GetOrdinal("name"))
+            reader.GetString(reader.GetOrdinal("name")),
+            reader.GetBoolean(reader.GetOrdinal("is_passcode_protected"))
         );
     }
 

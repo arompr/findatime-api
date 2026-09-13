@@ -20,15 +20,22 @@ public class CreateEvent
         this._passcodeHasher = passcodeHasher;
     }
 
-    public async Task<CreateEventResponse> Execute(string eventName, string guestId, string organizerName)
+    public async Task<CreateEventResponse> Execute(string eventName, string guestId, string organizerName, bool isPasscodeProtected)
     {
         PublicId publicId = this._publicIdGenerator.Generate();
-        Passcode passcode = this._passcodeGenerator.Generate();
-        PasscodeHash passcodeHash = this._passcodeHasher.Hash(passcode.Value);
+        string? passcodeValue = null;
+        PasscodeHash? passcodeHash = null;
+
+        if (isPasscodeProtected)
+        {
+            Passcode passcode = this._passcodeGenerator.Generate();
+            passcodeValue = passcode.Value;
+            passcodeHash = this._passcodeHasher.Hash(passcode.Value);
+        }
 
         Event domainEvent = this._eventFactory.CreateEvent(eventName, guestId, organizerName, publicId, passcodeHash);
         await this._eventRepository.Save(domainEvent);
 
-        return new CreateEventResponse(domainEvent.Id.Value, domainEvent.PublicId.Value, passcode.Value);
+        return new CreateEventResponse(domainEvent.Id.Value, domainEvent.PublicId.Value, isPasscodeProtected, passcodeValue);
     }
 }

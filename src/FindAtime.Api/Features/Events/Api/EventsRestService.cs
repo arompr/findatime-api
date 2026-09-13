@@ -12,7 +12,7 @@ public static class EventsRestService
                     if (string.IsNullOrWhiteSpace(requestParams.OrganizerName))
                         return Results.BadRequest("organizerName is required");
 
-                    var response = await createEvent.Execute(requestParams.Name, requestParams.GuestId, requestParams.OrganizerName);
+                    var response = await createEvent.Execute(requestParams.Name, requestParams.GuestId, requestParams.OrganizerName, requestParams.IsPasscodeProtected);
                     return Results.Created($"/events/{response.EventId}", response);
                 }
             )
@@ -69,9 +69,6 @@ public static class EventsRestService
 
                     if (string.IsNullOrWhiteSpace(requestParams.ParticipantName))
                         return Results.BadRequest("participantName is required");
-
-                    if (string.IsNullOrWhiteSpace(requestParams.Passcode))
-                        return Results.BadRequest("passcode is required");
 
                     JoinEventResponse response = await joinEvent.Execute(
                         id, requestParams.Passcode, requestParams.GuestId, requestParams.ParticipantName);

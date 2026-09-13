@@ -26,8 +26,8 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
 
             entity.ComplexProperty(e => e.PasscodeHash, complex =>
             {
-                complex.Property(p => p.Hash).HasColumnName("passcode_hash").IsRequired();
-                complex.Property(p => p.Salt).HasColumnName("passcode_salt").IsRequired();
+                complex.Property(p => p.Hash).HasColumnName("passcode_hash");
+                complex.Property(p => p.Salt).HasColumnName("passcode_salt");
             });
         });
 

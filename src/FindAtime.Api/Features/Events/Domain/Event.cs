@@ -18,7 +18,9 @@ public class Event
     [Column("organizer_participant_id")]
     public ParticipantId OrganizerParticipantId { get; private set; }
 
-    public PasscodeHash PasscodeHash { get; private set; }
+    public PasscodeHash? PasscodeHash { get; private set; }
+
+    public bool IsPasscodeProtected => this.PasscodeHash is not null;
 
     public IReadOnlyCollection<Participant> Participants => _participants;
 
@@ -29,7 +31,7 @@ public class Event
         PublicId publicId,
         string name,
         ParticipantId organizerParticipantId,
-        PasscodeHash passcodeHash,
+        PasscodeHash? passcodeHash,
         List<Participant> participants
     )
     {
@@ -46,7 +48,7 @@ public class Event
         PublicId publicId,
         string name,
         Participant organizer,
-        PasscodeHash passcodeHash
+        PasscodeHash? passcodeHash
     )
     {
         organizer.EventId = id;

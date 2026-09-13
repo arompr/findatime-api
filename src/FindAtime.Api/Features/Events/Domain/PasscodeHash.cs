@@ -1,4 +1,4 @@
-public readonly record struct PasscodeHash
+public sealed record PasscodeHash
 {
     public byte[] Hash { get; }
     public byte[] Salt { get; }

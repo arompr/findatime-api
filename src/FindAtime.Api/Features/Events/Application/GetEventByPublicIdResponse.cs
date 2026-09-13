@@ -1,1 +1,1 @@
-public record GetEventByPublicIdResponse(string EventId, string Name);
+public record GetEventByPublicIdResponse(string EventId, string Name, bool IsPasscodeProtected);
