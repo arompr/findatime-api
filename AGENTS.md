@@ -37,8 +37,8 @@ manually in `Program.cs`.
 src/FindAtime.Api/
   Features/
     Events/
-      Api/            HTTP layer (endpoint mapping, request DTOs)
-      Application/    Use cases + response DTOs (CreateEvent, GetEvent, JoinEvent, ...)
+      Api/            HTTP layer (endpoint mapping, request + response DTOs)
+      Application/    Use cases (CreateEvent, GetEvent, JoinEvent, ...)
         Exceptions/   Application exceptions (EventNotFound, InvalidPasscode, ...)
       Domain/         Domain model + factory (Event, EventId, EventFactory)
       Infra/          Persistence (EF Core write side)
@@ -75,6 +75,9 @@ Layering rules:
   Add new mappings to that dictionary — do not chain `if` statements.
 - Request-shape validation (malformed uuid, blank required fields) stays as
   inline `Results.BadRequest` in the endpoints.
+- Response objects (`*Response` records) are their own types, live in the
+  `Api` folder, and are what endpoints return. Map application DTOs into them;
+  do not return application DTOs directly from endpoints.
 - Keep the read and write sides separated (CQRS-lite): writes via EF Core,
   reads via raw SQL + Dapper.
 - SQL read queries live in `*.sql` files embedded as resources, referenced by
@@ -86,7 +89,7 @@ Layering rules:
   factories).
 - Domain entities use typed ids (e.g. `EventId`) rather than raw GUIDs.
 - Use records for request/response DTOs (e.g. `CreateEventRequestParams`,
-  `EventReadDto`).
+  `GetEventResponse`).
 - Follow the existing naming: private fields are `_camelCase`, PascalCase public
   members, 4-space indentation (see `.editorconfig`). Do not add comments unless
   asked.
@@ -98,7 +101,7 @@ Layering rules:
   db/user/pass `findatime`). The same key is used in every environment.
   Locally it is overridden by gitignored `.env` and `.env.staging` files,
   loaded by `Program.cs` via `AddDotNetEnvMulti([".env",
-  $".env.{EnvironmentName.ToLowerInvariant()}"])`; `.env.staging` wins over
+$".env.{EnvironmentName.ToLowerInvariant()}"])`; `.env.staging` wins over
   `.env`. In
   deployment (Render) the value comes from the `ConnectionStrings__Postgres`
   env var. Never put real credentials in committed files.

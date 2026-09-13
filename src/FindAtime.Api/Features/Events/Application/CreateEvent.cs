@@ -26,20 +26,20 @@ public class CreateEvent
     )
     {
         PublicId publicId = this._publicIdGenerator.Generate();
-        PasscodeCreated passcode = null!;
+        PasscodeCreated? passcode = null;
         if (isPasscodeProtected)
         {
             passcode = this._passcodeFactory.CreatePasscode();
         }
 
-        Event @event = this._eventFactory.CreateEvent(eventName, guestId, organizerName, publicId, passcode.Hash);
+        Event @event = this._eventFactory.CreateEvent(eventName, guestId, organizerName, publicId, passcode?.Hash);
         await this._eventRepository.Save(@event);
 
         return new CreateEventResponse(
             @event.Id.Value,
             @event.PublicId.Value,
             isPasscodeProtected,
-            passcode.Passcode.Value
+            passcode?.Passcode.Value
         );
     }
 }

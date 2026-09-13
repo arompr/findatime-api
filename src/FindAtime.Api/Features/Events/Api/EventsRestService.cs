@@ -30,11 +30,13 @@ public static class EventsRestService
                         return Results.BadRequest("guestId must be a valid uuid");
 
                     IReadOnlyList<EventSummaryDto> events = await searchEvents.Execute(parsed);
-                    return Results.Ok(events);
+                    var response = new SearchEventsResponse(
+                        events.Select(e => new EventSummaryResponse(e.PublicId, e.Name)).ToList());
+                    return Results.Ok(response);
                 }
             )
             .WithName("SearchEvents")
-            .Produces<EventSummaryDto[]>(StatusCodes.Status200OK);
+            .Produces<SearchEventsResponse>(StatusCodes.Status200OK);
 
         app.MapGet(
                 "/events/{publicId}",
