@@ -16,7 +16,6 @@ on:
 permissions:
     contents: read
     packages: write
-    id-token: write
 
 jobs:
     publish:
@@ -76,7 +75,7 @@ jobs:
               working-directory: typescript-client
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: npm publish --provenance
+              run: npm publish
 
             - name: Reset working tree
               working-directory: typescript-client
