@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 [Index(nameof(PublicId), IsUnique = true)]
 public class Event
 {
-    private List<Participant> _participants;
+    private readonly List<Participant> _participants = [];
 
     [Column("id")]
     public EventId Id { get; private set; }
@@ -13,7 +13,7 @@ public class Event
     public PublicId PublicId { get; private set; }
 
     [Column("name")]
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
 
     [Column("organizer_participant_id")]
     public ParticipantId OrganizerParticipantId { get; private set; }
@@ -22,23 +22,32 @@ public class Event
 
     public IReadOnlyCollection<Participant> Participants => _participants;
 
-    private Event()
-    {
-        this._participants = new List<Participant>();
-        this.PasscodeHash = PasscodeHash.FromBytes([], []);
-    }
+    private Event() { }
 
-    public Event(EventId id, PublicId publicId, string name, ParticipantId organizerParticipantId, PasscodeHash passcodeHash, List<Participant> participants)
+    public Event(
+        EventId id,
+        PublicId publicId,
+        string name,
+        ParticipantId organizerParticipantId,
+        PasscodeHash passcodeHash,
+        List<Participant> participants
+    )
     {
         this.Id = id;
         this.PublicId = publicId;
         this.Name = name;
         this.OrganizerParticipantId = organizerParticipantId;
         this.PasscodeHash = passcodeHash;
-        this._participants = participants;
+        this._participants = [.. participants];
     }
 
-    public static Event Create(EventId id, PublicId publicId, string name, Participant organizer, PasscodeHash passcodeHash)
+    public static Event Create(
+        EventId id,
+        PublicId publicId,
+        string name,
+        Participant organizer,
+        PasscodeHash passcodeHash
+    )
     {
         organizer.EventId = id;
         return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, [organizer]);
