@@ -31,6 +31,9 @@ builder.Services.AddFindAtimeServices(connectionString);
 
 var app = builder.Build();
 
+var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+startupLogger.LogInformation("CORS allowed origins: {Origins}", allowedOrigins);
+
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
