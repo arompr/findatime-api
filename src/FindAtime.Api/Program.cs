@@ -32,7 +32,16 @@ builder.Services.AddFindAtimeServices(connectionString);
 var app = builder.Build();
 
 var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
-startupLogger.LogInformation("CORS allowed origins: {Origins}", allowedOrigins);
+startupLogger.LogInformation(
+    "CORS allowed origins (count: {Count}): [{Origins}]",
+    allowedOrigins.Length,
+    string.Join(", ", allowedOrigins));
+
+if (allowedOrigins.Length == 0)
+{
+    startupLogger.LogWarning(
+        "CORS allowed origins is empty. Cross-origin requests will be blocked.");
+}
 
 app.UseExceptionHandler();
 
