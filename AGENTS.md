@@ -94,6 +94,44 @@ Layering rules:
   members, 4-space indentation (see `.editorconfig`). Do not add comments unless
   asked.
 
+## Spec-driven development
+
+Specs live under `Docs/`. A **feature spec** is the current truth about one part
+of the product; a **change** is temporary work toward a new state.
+
+```
+Docs/
+  specs/                    current truth, one folder per feature
+    _templates/             templates for every file below
+    availability/           requirements.md / spec.md / design.md
+  changes/                  historical/temporary work, one numbered folder per change
+    001-initial-availability/   requirements.md / design.md / tasks.md
+```
+
+Roles of the three feature-spec files:
+
+- `requirements.md` = **enduring product intent** — why the feature exists, user
+  stories, acceptance criteria. WHAT and WHY, never HOW.
+- `spec.md` = **authoritative current behavior** — purpose, invariants, state,
+  behavior, and API contract. This is what the system currently guarantees.
+- `design.md` = **authoritative current architecture** — aggregate boundaries,
+  relationships, API shape, persistence model, validation, integration points,
+  and non-obvious decisions. Document what an agent can't infer from one or two
+  files; never line-level implementation detail.
+
+A change (`Docs/changes/NNN-name/`) is the vehicle that moves a feature from one
+state to the next:
+
+- `requirements.md` = what this change needs to accomplish (scope + acceptance).
+- `design.md` = how this change will be implemented (the *transition*).
+- `tasks.md` = ordered, dependency-annotated work items with acceptance criteria
+  and verification steps.
+
+Workflow: write the change's `requirements.md` → `design.md` → `tasks.md`, then
+implement `tasks.md` in order. When a change lands, fold its deltas into the
+feature's `requirements.md`/`spec.md`/`design.md` so they remain the current
+truth, and leave the change folder untouched as the historical record.
+
 ## Database
 
 - PostgreSQL 18 via Podman; local connection string default in

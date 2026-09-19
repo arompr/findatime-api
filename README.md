@@ -13,6 +13,9 @@ and let participants indicate availability.
 
 - [Database migrations](Docs/db-migrations.md) — how to change the schema and
   apply migrations
+- [Availability spec](Docs/specs/availability/spec.md) — the availability
+  feature's current behavior (see `Docs/specs/` for the full spec-driven
+  development layout)
 
 ## API typescript client
 
