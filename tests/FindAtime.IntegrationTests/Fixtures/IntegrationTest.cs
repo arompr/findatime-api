@@ -41,6 +41,7 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddScoped<LeaveEvent>();
         services.AddScoped<GetMyParticipant>();
         services.AddScoped<GetEventAvailabilities>();
+        services.AddScoped<GetParticipantAvailability>();
 
         _provider = services.BuildServiceProvider();
         Scope = _provider.CreateScope();

@@ -49,5 +49,31 @@ public static class AvailabilityRestService
             .Produces<GetEventAvailabilitiesResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound);
+
+        app.MapGet(
+                "/events/{publicId}/participants/{participantId}/availability",
+                async (string publicId, string participantId, GetParticipantAvailability getParticipantAvailability) =>
+                {
+                    if (string.IsNullOrWhiteSpace(publicId))
+                        return Results.BadRequest("publicId is required");
+
+                    if (!Guid.TryParse(participantId, out var parsedParticipantId))
+                        return Results.BadRequest("participantId must be a valid uuid");
+
+                    ParticipantAvailabilityResult result = await getParticipantAvailability.Execute(publicId, parsedParticipantId);
+
+                    return Results.Ok(new ParticipantAvailabilityResponse(
+                        result.ParticipantId,
+                        result.Name,
+                        result.Ranges
+                            .Select(r => new AvailabilityRangeResponse(r.Start, r.End))
+                            .ToList()
+                    ));
+                }
+            )
+            .WithName("GetParticipantAvailability")
+            .Produces<ParticipantAvailabilityResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AvailabilityFactory>();
         services.AddScoped<GetMyParticipant>();
         services.AddScoped<GetEventAvailabilities>();
+        services.AddScoped<GetParticipantAvailability>();
         services.AddSingleton<EventFactory>();
         services.AddSingleton<ParticipantFactory>();
         services.AddSingleton<PublicIdGenerator>();

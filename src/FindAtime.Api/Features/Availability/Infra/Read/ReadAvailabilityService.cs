@@ -4,6 +4,7 @@ public class ReadAvailabilityService
 {
     private static readonly string GetParticipantByEventAndGuestSql = Sql.Load("get_participant_by_event_and_guest.sql");
     private static readonly string GetEventAvailabilitiesSql = Sql.Load("get_event_availabilities.sql");
+    private static readonly string GetParticipantAvailabilitySql = Sql.Load("get_participant_availability.sql");
 
     private IReadConnectionProvider _connectionProvider;
 
@@ -74,5 +75,35 @@ public class ReadAvailabilityService
         }
 
         return new EventAvailabilityDto(eventTimezone, participants);
+    }
+
+    public async Task<ParticipantAvailabilityDto?> GetForParticipant(string publicId, Guid participantId)
+    {
+        var connection = await _connectionProvider.OpenAsync();
+
+        await using var reader = await connection.ExecuteReaderAsync(
+            GetParticipantAvailabilitySql, new { publicId, participantId });
+
+        if (!await reader.ReadAsync())
+            return null;
+
+        var participantIdValue = reader.GetGuid(reader.GetOrdinal("participant_id")).ToString();
+        var name = reader.GetString(reader.GetOrdinal("name"));
+
+        var ranges = new List<AvailabilityRangeDto>();
+
+        do
+        {
+            var startOrdinal = reader.GetOrdinal("start_utc");
+            if (reader.IsDBNull(startOrdinal))
+                continue;
+
+            ranges.Add(new AvailabilityRangeDto(
+                reader.GetFieldValue<DateTimeOffset>(startOrdinal),
+                reader.GetFieldValue<DateTimeOffset>(reader.GetOrdinal("end_utc"))
+            ));
+        } while (await reader.ReadAsync());
+
+        return new ParticipantAvailabilityDto(participantIdValue, name, ranges);
     }
 }

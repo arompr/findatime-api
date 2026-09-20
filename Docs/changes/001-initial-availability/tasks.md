@@ -63,8 +63,8 @@ one endpoint on top of it.
 - FE helper `getParticipantAvailability` + optional hook (no default wiring).
 
 **Acceptance criteria:**
-- [ ] 200 returns participant ranges (empty when none)
-- [ ] 404 for unknown publicId / participantId / cross-event participant
+- [x] 200 returns participant ranges (empty when none)
+- [x] 404 for unknown publicId / participantId / cross-event participant
 
 **Verification:**
 - Unit: empty ranges; cross-event throws.

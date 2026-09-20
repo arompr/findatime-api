@@ -31,6 +31,7 @@
     <EmbeddedResource Include="Features\Events\Infra\Read\search_events.sql" />
     <EmbeddedResource Include="Features\Availability\Infra\Read\get_participant_by_event_and_guest.sql" />
     <EmbeddedResource Include="Features\Availability\Infra\Read\get_event_availabilities.sql" />
+    <EmbeddedResource Include="Features\Availability\Infra\Read\get_participant_availability.sql" />
   </ItemGroup>
 
 </Project>
