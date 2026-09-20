@@ -69,4 +69,7 @@ public class Event
         int removed = this._participants.RemoveAll(p => p.GuestId == guestId);
         return removed > 0;
     }
+
+    public Participant? FindParticipant(ParticipantId participantId)
+        => this._participants.SingleOrDefault(p => p.ParticipantId == participantId);
 }

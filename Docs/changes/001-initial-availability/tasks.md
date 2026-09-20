@@ -83,11 +83,11 @@ one endpoint on top of it.
   delete localStorage availability modules.
 
 **Acceptance criteria:**
-- [ ] 200 returns saved block; replaces prior ranges
-- [ ] 400 invalid header/publicId/participantId or any invalid range (end <= start, > 24h)
-- [ ] 403 when guest id doesn't match participant
-- [ ] 404 unknown event/participant/cross-event
-- [ ] empty ranges clears selection
+- [x] 200 returns saved block; replaces prior ranges
+- [x] 400 invalid header/publicId/participantId or any invalid range (end <= start, > 24h)
+- [x] 403 when guest id doesn't match participant
+- [x] 404 unknown event/participant/cross-event
+- [x] empty ranges clears selection
 
 **Verification:**
 - Unit: factory boundary checks; happy path; 403/404; empty clears; invalid range index+reason; idempotent.

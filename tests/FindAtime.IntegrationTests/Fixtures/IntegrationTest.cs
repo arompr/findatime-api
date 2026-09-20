@@ -29,6 +29,7 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddScoped<EventRepository>();
         services.AddScoped<ReadEventService>();
         services.AddScoped<ReadAvailabilityService>();
+        services.AddScoped<AvailabilityRepository>();
         services.AddSingleton<EventFactory>();
         services.AddSingleton<ParticipantFactory>();
         services.AddSingleton<AvailabilityFactory>();
@@ -42,6 +43,7 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddScoped<GetMyParticipant>();
         services.AddScoped<GetEventAvailabilities>();
         services.AddScoped<GetParticipantAvailability>();
+        services.AddScoped<SetAvailability>();
 
         _provider = services.BuildServiceProvider();
         Scope = _provider.CreateScope();

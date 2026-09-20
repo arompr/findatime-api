@@ -12,3 +12,15 @@ GET {{baseUrl}}/events/{{publicId}}/availabilities
 
 ### Read one participant's availability
 GET {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
+
+### Replace one participant's availability
+PUT {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
+X-Guest-Id: 9c8d7e6f-5a4b-3c2d-1e0f-9a8b7c6d5e4f
+Content-Type: application/json
+
+{
+  "ranges": [
+    { "start": "2026-09-21T09:00:00Z", "end": "2026-09-21T10:00:00Z" },
+    { "start": "2026-09-21T14:00:00Z", "end": "2026-09-21T15:00:00Z" }
+  ]
+}

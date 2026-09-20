@@ -75,5 +75,54 @@ public static class AvailabilityRestService
             .Produces<ParticipantAvailabilityResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound);
+
+        app.MapPut(
+                "/events/{publicId}/participants/{participantId}/availability",
+                async (
+                    string publicId,
+                    string participantId,
+                    SetAvailabilityRequest request,
+                    HttpContext httpContext,
+                    SetAvailability setAvailability
+                ) =>
+                {
+                    string? guestId = httpContext.Request.Headers["X-Guest-Id"].FirstOrDefault();
+                    if (string.IsNullOrWhiteSpace(guestId))
+                        return Results.BadRequest("X-Guest-Id header is required");
+
+                    if (!Guid.TryParse(guestId, out var parsedGuestId))
+                        return Results.BadRequest("X-Guest-Id header must be a valid uuid");
+
+                    if (string.IsNullOrWhiteSpace(publicId))
+                        return Results.BadRequest("publicId is required");
+
+                    if (!Guid.TryParse(participantId, out var parsedParticipantId))
+                        return Results.BadRequest("participantId must be a valid uuid");
+
+                    IReadOnlyList<AvailabilityRangeRequest> ranges = request.Ranges ?? [];
+
+                    SetAvailabilityResult result = await setAvailability.Execute(
+                        publicId,
+                        parsedParticipantId,
+                        parsedGuestId,
+                        ranges
+                            .Select(r => new AvailabilityRangeResult(r.Start, r.End))
+                            .ToList()
+                    );
+
+                    return Results.Ok(new SetAvailabilityResponse(
+                        result.ParticipantId,
+                        result.Name,
+                        result.Ranges
+                            .Select(r => new AvailabilityRangeResponse(r.Start, r.End))
+                            .ToList()
+                    ));
+                }
+            )
+            .WithName("SetAvailability")
+            .Produces<SetAvailabilityResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }

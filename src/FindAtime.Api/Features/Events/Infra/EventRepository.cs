@@ -24,4 +24,14 @@ public class EventRepository
 
         return events.SingleOrDefault();
     }
+
+    public async Task<Event?> GetByPublicId(string publicId)
+    {
+        List<Event> events = await this._dbContext.Events
+            .Include(e => e.Participants)
+            .Where(e => e.PublicId == PublicId.FromString(publicId))
+            .ToListAsync();
+
+        return events.SingleOrDefault();
+    }
 }
