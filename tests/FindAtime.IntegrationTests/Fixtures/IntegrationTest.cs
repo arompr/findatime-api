@@ -28,8 +28,10 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddDbContext<DbContext>(o => o.UseNpgsql(_connection));
         services.AddScoped<EventRepository>();
         services.AddScoped<ReadEventService>();
+        services.AddScoped<ReadAvailabilityService>();
         services.AddSingleton<EventFactory>();
         services.AddSingleton<ParticipantFactory>();
+        services.AddSingleton<AvailabilityFactory>();
         services.AddSingleton<PublicIdGenerator>();
         services.AddSingleton<PasscodeGenerator>();
         services.AddSingleton<PasscodeHasher>();
@@ -37,6 +39,8 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddScoped<CreateEvent>();
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();
+        services.AddScoped<GetMyParticipant>();
+        services.AddScoped<GetEventAvailabilities>();
 
         _provider = services.BuildServiceProvider();
         Scope = _provider.CreateScope();

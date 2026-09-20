@@ -7,13 +7,15 @@ references Participant by ParticipantId.
 
 ## Domain Model
 
-    Participant 1 ──── 0..* AvailabilityRange
+    Participant 1 ──── 0..* Availability
 
-    AvailabilityRange
+    Availability
         - Start
         - End
 
-AvailabilityRange is a pure C# entity; the factory enforces the invariants.
+Availability is a pure C# entity; the factory enforces the invariants.
+Ownership flows Availability → Participant → Event, so an availability range
+references only ParticipantId (no redundant EventId).
 
 ## API
 
@@ -26,9 +28,8 @@ Reads are served via `GET /events/{publicId}/availabilities` (all) and
 
 ## Persistence
 
-`availability_ranges` table:
+`availabilities` table:
     - id
-    - event_id
     - participant_id
     - start_utc
     - end_utc

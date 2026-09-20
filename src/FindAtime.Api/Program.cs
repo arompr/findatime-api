@@ -54,6 +54,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 
 app.MapEvents();
+app.MapAvailability();
 app.MapHealth();
 
 app.Run();

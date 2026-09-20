@@ -15,6 +15,9 @@ public class Participant
     [Column("event_id")]
     public EventId EventId { get; set; }
 
+    [Column("timezone")]
+    public string? Timezone { get; set; }
+
     public Participant(ParticipantId participantId, GuestId guestId, string name, EventId eventId)
     {
         this.ParticipantId = participantId;

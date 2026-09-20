@@ -10,8 +10,8 @@ one endpoint on top of it.
 **Goal:** Resolve the calling guest into the participant record for an event.
 
 **Work:**
-- DB migration `AddAvailabilityRanges` (table + timezone columns + indexes).
-- Domain: `AvailabilityRange`, `AvailabilityRangeId`, `AvailabilityRangeFactory`;
+- DB migration `AddAvailabilities` (table + timezone columns + indexes).
+- Domain: `Availability`, `AvailabilityId`, `AvailabilityFactory`;
   add `Timezone` to `Event` and `Participant`.
 - Exceptions: `ParticipantNotFoundException`, `InvalidAvailabilityRangeException`,
   `ForbiddenException`; register in `Common/ExceptionHandler`.
@@ -44,8 +44,8 @@ one endpoint on top of it.
 - FE: `getEventAvailabilities`, `useEventAvailabilities`, wire into `AvailabilityWeek`.
 
 **Acceptance criteria:**
-- [ ] 200 returns flat participant list with grouped ranges (empty when no one joined)
-- [ ] 400 invalid publicId; 404 event not found
+- [x] 200 returns flat participant list with grouped ranges (empty when no one joined)
+- [x] 400 invalid publicId; 404 event not found
 
 **Verification:**
 - Unit: empty list / grouping / ordering / `eventTimezone` always present.

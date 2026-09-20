@@ -3,20 +3,20 @@
 ## Summary
 
 Introduces the Availability aggregate and its four endpoints. Adds the
-`availability_ranges` table and nullable `timezone` columns, new domain and
+`availabilities` table and nullable `timezone` columns, new domain and
 exception files, an EF Core write repository, and a Dapper read service.
 
 ## Changes
 
-### Database (migration `AddAvailabilityRanges`)
-- `availability_ranges` table: `id`, `event_id` (FK, cascade), `participant_id`
-  (FK, cascade), `start_utc`, `end_utc`, `created_at`; CHECK `end_utc > start_utc`,
+### Database (migration `AddAvailabilities`)
+- `availabilities` table: `id`, `participant_id` (FK, cascade), `start_utc`,
+  `end_utc`, `created_at`; CHECK `end_utc > start_utc`,
   CHECK `end_utc - start_utc <= interval '24 hours'`.
-- Indexes on `event_id` and `(event_id, participant_id)`.
+- Index on `participant_id` (FK). Ownership is Availability → Participant → Event.
 - `events.timezone` and `participants.timezone` nullable text columns.
 
 ### Domain
-- `AvailabilityRange`, `AvailabilityRangeId`, `AvailabilityRangeFactory` (pure C#).
+- `Availability`, `AvailabilityId`, `AvailabilityFactory` (pure C#).
 - `Event.Timezone` and `Participant.Timezone` (nullable string).
 
 ### Exceptions
@@ -26,7 +26,7 @@ exception files, an EF Core write repository, and a Dapper read service.
 All registered in `Common/ExceptionHandler`.
 
 ### Infra
-- `DbContext`: `DbSet<AvailabilityRange>`, typed id and timezone column mappings.
+- `DbContext`: `DbSet<Availability>`, typed id and timezone column mappings.
 - `AvailabilityRepository` (EF Core write side).
 - `ReadAvailabilityService` (Dapper + raw SQL).
 - SQL read queries: `get_participant_by_event_and_guest`,

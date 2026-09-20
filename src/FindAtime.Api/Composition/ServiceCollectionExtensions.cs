@@ -14,6 +14,10 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<DbContext>(options => options.UseNpgsql(dataSource));
         services.AddScoped<EventRepository>();
         services.AddScoped<ReadEventService>();
+        services.AddScoped<ReadAvailabilityService>();
+        services.AddSingleton<AvailabilityFactory>();
+        services.AddScoped<GetMyParticipant>();
+        services.AddScoped<GetEventAvailabilities>();
         services.AddSingleton<EventFactory>();
         services.AddSingleton<ParticipantFactory>();
         services.AddSingleton<PublicIdGenerator>();

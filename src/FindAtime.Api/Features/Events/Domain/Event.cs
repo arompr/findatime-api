@@ -18,6 +18,9 @@ public class Event
     [Column("organizer_participant_id")]
     public ParticipantId OrganizerParticipantId { get; private set; }
 
+    [Column("timezone")]
+    public string? Timezone { get; private set; }
+
     public PasscodeHash? PasscodeHash { get; private set; }
 
     public bool IsPasscodeProtected => this.PasscodeHash is not null;

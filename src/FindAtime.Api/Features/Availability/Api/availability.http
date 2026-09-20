@@ -1,0 +1,10 @@
+#baseUrl = http://localhost:8080
+@baseUrl = http://localhost:5263
+@publicId = f836fbaf-7b81-474e-9b53-478ad1ac2a15
+
+### Resolve the calling participant
+GET {{baseUrl}}/events/{{publicId}}/participant
+X-Guest-Id: 9c8d7e6f-5a4b-3c2d-1e0f-9a8b7c6d5e4f
+
+### List event availability
+GET {{baseUrl}}/events/{{publicId}}/availabilities
