@@ -7,11 +7,11 @@ public class LeaveEvent
         this._eventRepository = eventRepository;
     }
 
-    public async Task Execute(Guid eventId, string guestId)
+    public async Task Execute(string publicId, string guestId)
     {
-        Event? domainEvent = await this._eventRepository.GetById(eventId);
+        Event? domainEvent = await this._eventRepository.GetByPublicId(publicId);
         if (domainEvent is null)
-            throw new EventNotFoundException(eventId);
+            throw new EventNotFoundException(publicId);
 
         var requestGuestId = GuestId.FromString(guestId);
         Participant? participant = domainEvent.Participants
@@ -21,7 +21,7 @@ public class LeaveEvent
             return;
 
         if (participant.ParticipantId == domainEvent.OrganizerParticipantId)
-            throw new OrganizerCannotLeaveException(eventId);
+            throw new OrganizerCannotLeaveException(publicId);
 
         domainEvent.RemoveParticipant(requestGuestId);
         await this._eventRepository.Save(domainEvent);

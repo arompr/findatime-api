@@ -1,7 +1,7 @@
 public sealed class ParticipantAlreadyJoinedException : Exception
 {
-    public ParticipantAlreadyJoinedException(Guid eventId)
-        : base($"This participant has already joined event '{eventId}'.")
+    public ParticipantAlreadyJoinedException(string publicId)
+        : base($"This participant has already joined event with public id '{publicId}'.")
     {
     }
 }

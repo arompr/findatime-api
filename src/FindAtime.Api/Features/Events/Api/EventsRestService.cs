@@ -61,8 +61,8 @@ public static class EventsRestService
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapPost(
-                "/events/{id}/join",
-                async (Guid id, JoinEventRequestParams requestParams, JoinEvent joinEvent) =>
+                "/events/{publicId}/join",
+                async (string publicId, JoinEventRequestParams requestParams, JoinEvent joinEvent) =>
                 {
                     if (!Guid.TryParse(requestParams.GuestId, out _))
                         return Results.BadRequest("guestId must be a valid uuid");
@@ -71,26 +71,26 @@ public static class EventsRestService
                         return Results.BadRequest("participantName is required");
 
                     JoinEventResponse response = await joinEvent.Execute(
-                        id,
+                        publicId,
                         requestParams.Passcode,
                         requestParams.GuestId,
                         requestParams.ParticipantName
                     );
 
-                    return Results.Created($"/events/{id}/participants/{response.ParticipantId}", response);
+                    return Results.Created($"/events/{publicId}/participants/{response.ParticipantId}", response);
                 }
             )
             .WithName("JoinEvent")
             .Produces<JoinEventResponse>(StatusCodes.Status201Created);
 
         app.MapPost(
-                "/events/{id}/leave",
-                async (Guid id, LeaveEventRequestParams requestParams, LeaveEvent leaveEvent) =>
+                "/events/{publicId}/leave",
+                async (string publicId, LeaveEventRequestParams requestParams, LeaveEvent leaveEvent) =>
                 {
                     if (!Guid.TryParse(requestParams.GuestId, out _))
                         return Results.BadRequest("guestId must be a valid uuid");
 
-                    await leaveEvent.Execute(id, requestParams.GuestId);
+                    await leaveEvent.Execute(publicId, requestParams.GuestId);
 
                     return Results.NoContent();
                 }

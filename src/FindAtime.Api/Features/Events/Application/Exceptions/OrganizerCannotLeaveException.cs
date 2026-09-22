@@ -1,7 +1,7 @@
 public sealed class OrganizerCannotLeaveException : Exception
 {
-    public OrganizerCannotLeaveException(Guid eventId)
-        : base($"The organizer of event '{eventId}' cannot leave their own event.")
+    public OrganizerCannotLeaveException(string publicId)
+        : base($"The organizer of event with public id '{publicId}' cannot leave their own event.")
     {
     }
 }

@@ -23,7 +23,7 @@ public class PasscodePersistenceTests : IntegrationTest
         var response = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        var persisted = await _repository.GetById(Guid.Parse(response.EventId));
+        var persisted = await _repository.GetByPublicId(response.PublicId);
 
         Assert.NotNull(persisted);
         Assert.True(_hasher.Verify(response.Passcode!, persisted.PasscodeHash!));
@@ -35,7 +35,7 @@ public class PasscodePersistenceTests : IntegrationTest
         var response = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        var persisted = await _repository.GetById(Guid.Parse(response.EventId));
+        var persisted = await _repository.GetByPublicId(response.PublicId);
 
         Assert.NotNull(persisted);
         Assert.False(_hasher.Verify("ZZZZZZ", persisted.PasscodeHash!));

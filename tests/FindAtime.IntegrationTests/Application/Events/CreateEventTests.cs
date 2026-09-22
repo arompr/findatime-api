@@ -22,7 +22,7 @@ public class CreateEventTests : IntegrationTest
         var response = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        var persisted = await _repository.GetById(Guid.Parse(response.EventId));
+        var persisted = await _repository.GetByPublicId(response.PublicId);
 
         Assert.NotNull(persisted);
         Assert.Equal(TestEvents.Name, persisted.Name);

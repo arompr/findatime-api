@@ -36,7 +36,6 @@ public class CreateEvent
         await this._eventRepository.Save(@event);
 
         return new CreateEventResponse(
-            @event.Id.Value,
             @event.PublicId.Value,
             isPasscodeProtected,
             passcode?.Passcode.Value

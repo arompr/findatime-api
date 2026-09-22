@@ -45,7 +45,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _joinEvent.Execute(
-            Guid.Parse(created.EventId), null, FriendGuestId, FriendName);
+            created.PublicId, null, FriendGuestId, FriendName);
 
         var result = await _getEventAvailabilities.Execute(created.PublicId);
 
@@ -61,7 +61,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         var joined = await _joinEvent.Execute(
-            Guid.Parse(created.EventId), null, FriendGuestId, FriendName);
+            created.PublicId, null, FriendGuestId, FriendName);
 
         var late = new DateTimeOffset(2026, 9, 19, 14, 0, 0, TimeSpan.Zero);
         var early = new DateTimeOffset(2026, 9, 19, 9, 0, 0, TimeSpan.Zero);
@@ -86,7 +86,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _joinEvent.Execute(
-            Guid.Parse(created.EventId), null, FriendGuestId, FriendName);
+            created.PublicId, null, FriendGuestId, FriendName);
 
         var result = await _getEventAvailabilities.Execute(created.PublicId);
 
