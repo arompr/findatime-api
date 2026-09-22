@@ -7,16 +7,9 @@ of an event-scheduling product. The product's goal is to let people create
 scheduling events, share them, and let participants indicate the times they are
 available so an organizer can pick a slot that works for everyone.
 
-Current implemented functionality (evolving):
-
-- **Create an event** — POST an event with a name; the API returns a generated
-  event id and a location (`/events/{id}`) to share.
-- **Retrieve an event** — GET `/events/{id}` returns the event's id and name,
-  or 404 when it does not exist.
-
-The data model is intentionally minimal right now (an event is just an id +
-name). It is expected to grow with availability/scheduling features (proposed
-slots, participant availability, votes, etc.) as the domain is fleshed out.
+Current behavior is documented per feature under `Docs/specs/` — see
+`Docs/README.md` for the index of features and where each feature's
+requirements, spec, and design live.
 
 ## Tech stack
 
@@ -101,8 +94,10 @@ of the product; a **change** is temporary work toward a new state.
 
 ```
 Docs/
+  README.md                 index of features and doc layout
   specs/                    current truth, one folder per feature
     _templates/             templates for every file below
+    events/                 requirements.md / spec.md / design.md
     availability/           requirements.md / spec.md / design.md
   changes/                  historical/temporary work, one numbered folder per change
     001-initial-availability/   requirements.md / design.md / tasks.md
