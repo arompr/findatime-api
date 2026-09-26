@@ -1,5 +1,7 @@
 # Initial Availability: Tasks
 
+Landed: 2026-09-24T23:38:02Z
+
 Ordered. Task 1 is the shared foundation and must land first; Tasks 2–4 each add
 one endpoint on top of it.
 
@@ -23,13 +25,15 @@ one endpoint on top of it.
 - FE: `resolveParticipant`, `useMyParticipant`, wire into `EventPage`.
 
 **Acceptance criteria:**
-- [ ] `GET /events/{publicId}/participant` with valid `X-Guest-Id` returns `{ participantId, name }`
-- [ ] 400 when `X-Guest-Id` missing or malformed
-- [ ] 404 when event unknown or guest hasn't joined
+- [x] `GET /events/{publicId}/participant` with valid `X-Guest-Id` returns `{ participantId, name }`
+- [x] 400 when `X-Guest-Id` missing or malformed
+- [x] 404 when event unknown or guest hasn't joined
 
 **Verification:**
 - Unit: `GetMyParticipant.Execute` found / `EventNotFoundException` / `ParticipantNotFoundException`.
 - Integration: create → join → resolve; 404 cases; 400 cases.
+
+Verified: 2026-09-24T23:38:02Z
 
 ## Task 2 — `GET /events/{publicId}/availabilities`
 
@@ -51,6 +55,8 @@ one endpoint on top of it.
 - Unit: empty list / grouping / ordering / `eventTimezone` always present.
 - Integration: seed participants + ranges, assert grouping + ordering.
 
+Verified: 2026-09-24T23:38:02Z
+
 ## Task 3 — `GET /events/{publicId}/participants/{participantId}/availability`
 
 **Depends on:** Task 1
@@ -69,6 +75,8 @@ one endpoint on top of it.
 **Verification:**
 - Unit: empty ranges; cross-event throws.
 - Integration: 404 cases + 200 grouped ranges.
+
+Verified: 2026-09-24T23:38:02Z
 
 ## Task 4 — `PUT /events/{publicId}/participants/{participantId}/availability`
 
@@ -92,3 +100,5 @@ one endpoint on top of it.
 **Verification:**
 - Unit: factory boundary checks; happy path; 403/404; empty clears; invalid range index+reason; idempotent.
 - Integration: end-to-end create → join → resolve → PUT → GET; 403; 400 end <= start; 400 > 24h; rewrite wipes prior.
+
+Verified: 2026-09-24T23:38:02Z
