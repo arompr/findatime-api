@@ -10,6 +10,7 @@ public sealed class ExceptionHandler : IExceptionHandler
         [typeof(OrganizerCannotLeaveException)] = (StatusCodes.Status409Conflict, "organizer_cannot_leave"),
         [typeof(ParticipantNotFoundException)] = (StatusCodes.Status404NotFound, "participant_not_found"),
         [typeof(InvalidAvailabilityRangeException)] = (StatusCodes.Status400BadRequest, "invalid_availability_range"),
+        [typeof(InvalidTimezoneException)] = (StatusCodes.Status400BadRequest, "invalid_timezone"),
         [typeof(ForbiddenException)] = (StatusCodes.Status403Forbidden, "forbidden"),
     };
 

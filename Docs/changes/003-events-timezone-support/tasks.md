@@ -31,15 +31,17 @@ HTTP mapping, so every later task validates/convert timezones consistently.
   to the `Mappings` dictionary (no `if` chain).
 
 **Acceptance criteria:**
-- [ ] `Resolve` returns a `TimeZoneInfo` for a valid IANA id (e.g. `Europe/Berlin`).
-- [ ] `Resolve` throws `InvalidTimezoneException` for an unknown id.
-- [ ] `ToUtc` maps a wall-clock to the correct UTC instant, honoring DST.
-- [ ] `ToUtc` throws `InvalidAvailabilityRangeException` for a DST-gap or ambiguous local time.
-- [ ] `ToWallClock` maps a UTC instant back to the correct wall-clock in the frame.
-- [ ] `ExceptionHandler` maps `InvalidTimezoneException` → 400 `invalid_timezone` with body `{ message, error }`.
+- [x] `Resolve` returns a `TimeZoneInfo` for a valid IANA id (e.g. `Europe/Berlin`).
+- [x] `Resolve` throws `InvalidTimezoneException` for an unknown id.
+- [x] `ToUtc` maps a wall-clock to the correct UTC instant, honoring DST.
+- [x] `ToUtc` throws `InvalidAvailabilityRangeException` for a DST-gap or ambiguous local time.
+- [x] `ToWallClock` maps a UTC instant back to the correct wall-clock in the frame.
+- [x] `ExceptionHandler` maps `InvalidTimezoneException` → 400 `invalid_timezone` with body `{ message, error }`.
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-26T01:09:27Z
 
 ## Task 2 — Domain: EventParams + Event.Params + Participant.SetTimezone + ParticipantFactory timezone `[P]`
 
