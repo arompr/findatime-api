@@ -21,9 +21,15 @@ public class ReadEventService
         if (!await reader.ReadAsync())
             return null;
 
+        var timezoneOrdinal = reader.GetOrdinal("timezone");
+        string? timezone = reader.IsDBNull(timezoneOrdinal)
+            ? null
+            : reader.GetString(timezoneOrdinal);
+
         return new EventDto(
             reader.GetString(reader.GetOrdinal("public_id")),
             reader.GetString(reader.GetOrdinal("name")),
+            timezone,
             reader.GetBoolean(reader.GetOrdinal("is_passcode_protected"))
         );
     }

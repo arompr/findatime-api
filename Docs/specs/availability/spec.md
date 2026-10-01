@@ -4,7 +4,8 @@
 
 Availability represents the time ranges during which a participant is available
 for an event. An organizer reads availability to choose a slot that works for
-everyone.
+everyone. Ranges are stored as canonical UTC instants and, when the event's
+timezone option is on, rendered as wall-clock times in the viewer's timezone.
 
 ## Invariants
 
@@ -12,28 +13,38 @@ everyone.
 - A participant can have zero or more availability ranges.
 - Ranges must have a start before their end.
 - Ranges must not exceed 24 hours in duration.
+- Each range is stored as a canonical UTC start/end pair, independent of the submitter's timezone.
+- Ranges are submitted as wall-clock times in the participant's timezone and read as wall-clock times in the resolved viewer frame.
 - Clearing a participant's availability is done by replacing it with no ranges.
 
 ## State
 
 An availability range has:
 
-- Start (UTC instant)
-- End (UTC instant)
+- Start (canonical UTC instant)
+- End (canonical UTC instant)
 
-A participant has an optional timezone (always null today).
+A participant has a timezone (IANA id), captured when they join or submit
+availability.
 
 ## Behavior
 
 ### Replace
 
 Replacing a participant's availability removes all existing ranges and stores
-the supplied ranges in a single operation.
+the supplied ranges. The request supplies the participant's IANA timezone and
+the ranges as wall-clock local times; each range is converted to a canonical UTC
+instant before storage. The response returns the ranges converted back to the
+participant's wall-clock times plus the timezone label.
 
 ### Query
 
 Availability can be retrieved for all participants of an event, or for a single
-participant.
+participant. The request supplies an optional viewer timezone; when the event's
+timezone option is on, each stored UTC range is rendered as wall-clock in the
+viewer's frame (viewer timezone → event timezone → UTC) along with the label.
+When the option is off, times are rendered in UTC with the label `UTC` (legacy,
+no conversion).
 
 ## API
 
@@ -44,17 +55,27 @@ Returns the participant id and name for the calling guest. Requires an
 `X-Guest-Id` header.
 
 ### List event availability
-`GET /events/{publicId}/availabilities`
+`QUERY /events/{publicId}/availabilities`
 
-Returns every participant and their ranges for the event.
+Body carries an optional `{ timezone }` (the viewer's IANA frame; an unknown id
+is rejected with 400 `invalid_timezone`). Returns the resolved timezone label
+and every participant with their ranges rendered as wall-clock times in that
+frame. Because it reads with a body, the operation uses the `QUERY` verb on its
+original path.
 
 ### Read one participant's availability
-`GET /events/{publicId}/participants/{participantId}/availability`
+`QUERY /events/{publicId}/participants/{participantId}/availability`
 
-Returns a single participant's ranges.
+Body carries an optional `{ timezone }` viewer frame, validated and applied as
+above. Returns the participant's name, the resolved timezone label, and their
+ranges as wall-clock times.
 
 ### Replace participant availability
 `PUT /events/{publicId}/participants/{participantId}/availability`
 
-The request represents the participant's complete desired availability.
-Requires an `X-Guest-Id` header that must match the participant's guest id.
+The request represents the participant's complete desired availability. Body
+carries the participant's IANA `timezone` and `ranges` as `{ start, end }`
+wall-clock strings without offset; 400 `timezone is required` when blank and 400
+`invalid_timezone` for an unknown id. Returns the participant id, name, timezone
+label, and the ranges as wall-clock times. Requires an `X-Guest-Id` header that
+must match the participant's guest id.

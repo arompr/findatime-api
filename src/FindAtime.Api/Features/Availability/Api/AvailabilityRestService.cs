@@ -1,3 +1,6 @@
+using System.Globalization;
+using Microsoft.AspNetCore.Mvc;
+
 public static class AvailabilityRestService
 {
     public static void MapAvailability(this WebApplication app)
@@ -22,17 +25,21 @@ public static class AvailabilityRestService
             .Produces<GetMyParticipantResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        app.MapGet(
+        app.MapMethods(
                 "/events/{publicId}/availabilities",
-                async (string publicId, GetEventAvailabilities getEventAvailabilities) =>
+                [HttpMethods.Query],
+                async (string publicId, [FromBody] AvailabilityQueryRequest request, GetEventAvailabilities getEventAvailabilities, TimezoneConverter timezoneConverter) =>
                 {
                     if (string.IsNullOrWhiteSpace(publicId))
                         return Results.BadRequest("publicId is required");
 
-                    GetEventAvailabilitiesResult result = await getEventAvailabilities.Execute(publicId);
+                    if (request.Timezone is not null)
+                        timezoneConverter.Resolve(request.Timezone);
+
+                    GetEventAvailabilitiesResult result = await getEventAvailabilities.Execute(publicId, request.Timezone);
 
                     return Results.Ok(new GetEventAvailabilitiesResponse(
-                        result.EventTimezone,
+                        result.Timezone,
                         result.Participants
                             .Select(p => new ParticipantAvailabilityResponse(
                                 p.ParticipantId,
@@ -50,9 +57,10 @@ public static class AvailabilityRestService
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound);
 
-        app.MapGet(
+        app.MapMethods(
                 "/events/{publicId}/participants/{participantId}/availability",
-                async (string publicId, string participantId, GetParticipantAvailability getParticipantAvailability) =>
+                [HttpMethods.Query],
+                async (string publicId, string participantId, [FromBody] AvailabilityQueryRequest request, GetParticipantAvailability getParticipantAvailability, TimezoneConverter timezoneConverter) =>
                 {
                     if (string.IsNullOrWhiteSpace(publicId))
                         return Results.BadRequest("publicId is required");
@@ -60,11 +68,15 @@ public static class AvailabilityRestService
                     if (!Guid.TryParse(participantId, out var parsedParticipantId))
                         return Results.BadRequest("participantId must be a valid uuid");
 
-                    ParticipantAvailabilityResult result = await getParticipantAvailability.Execute(publicId, parsedParticipantId);
+                    if (request.Timezone is not null)
+                        timezoneConverter.Resolve(request.Timezone);
 
-                    return Results.Ok(new ParticipantAvailabilityResponse(
+                    ParticipantAvailabilityResult result = await getParticipantAvailability.Execute(publicId, parsedParticipantId, request.Timezone);
+
+                    return Results.Ok(new GetParticipantAvailabilityResponse(
                         result.ParticipantId,
                         result.Name,
+                        result.Timezone,
                         result.Ranges
                             .Select(r => new AvailabilityRangeResponse(r.Start, r.End))
                             .ToList()
@@ -72,7 +84,7 @@ public static class AvailabilityRestService
                 }
             )
             .WithName("GetParticipantAvailability")
-            .Produces<ParticipantAvailabilityResponse>(StatusCodes.Status200OK)
+            .Produces<GetParticipantAvailabilityResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound);
 
@@ -99,20 +111,25 @@ public static class AvailabilityRestService
                     if (!Guid.TryParse(participantId, out var parsedParticipantId))
                         return Results.BadRequest("participantId must be a valid uuid");
 
+                    if (string.IsNullOrWhiteSpace(request.Timezone))
+                        return Results.BadRequest("timezone is required");
+
                     IReadOnlyList<AvailabilityRangeRequest> ranges = request.Ranges ?? [];
 
                     SetAvailabilityResult result = await setAvailability.Execute(
                         publicId,
                         parsedParticipantId,
                         parsedGuestId,
+                        request.Timezone,
                         ranges
-                            .Select(r => new AvailabilityRangeResult(r.Start, r.End))
+                            .Select(r => new AvailabilityRangeResult(ParseWallClock(r.Start), ParseWallClock(r.End)))
                             .ToList()
                     );
 
                     return Results.Ok(new SetAvailabilityResponse(
                         result.ParticipantId,
                         result.Name,
+                        result.Timezone,
                         result.Ranges
                             .Select(r => new AvailabilityRangeResponse(r.Start, r.End))
                             .ToList()
@@ -124,5 +141,17 @@ public static class AvailabilityRestService
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
+    }
+
+    private static DateTime ParseWallClock(string value)
+    {
+        if (!DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed)
+            || parsed.Kind != DateTimeKind.Unspecified)
+        {
+            throw new InvalidAvailabilityRangeException(
+                $"Availability range '{value}' must be a wall-clock datetime without a UTC offset.");
+        }
+
+        return parsed;
     }
 }

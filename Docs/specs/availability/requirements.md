@@ -3,7 +3,9 @@
 Availability lets participants mark the times they are free on an event's
 calendar, and lets organizers view everyone's availability so they can pick a
 slot that works for all. It replaces the localStorage-only prototype with
-server-backed storage.
+server-backed storage. Availability is stored as canonical UTC instants but
+entered as wall-clock times in each participant's own timezone and rendered in
+the viewer's timezone when the event's timezone option is on.
 
 ## User Stories
 
@@ -14,9 +16,12 @@ server-backed storage.
 
 **Acceptance Criteria:**
 WHEN I submit my availability ranges THEN THE SYSTEM SHALL store them and return my saved availability
+WHEN I submit my availability THEN THE SYSTEM SHALL require my IANA timezone and interpret the ranges I submit as wall-clock local times in it
 WHEN I submit an empty list of ranges THEN THE SYSTEM SHALL clear my previous availability
 WHEN I submit a range whose end is not after its start THEN THE SYSTEM SHALL reject the request with an error
 WHEN I submit a range longer than 24 hours THEN THE SYSTEM SHALL reject the request with an error
+WHEN I submit a range that is ambiguous or nonexistent in my timezone THEN THE SYSTEM SHALL reject the request with an error
+WHEN I submit an unknown timezone THEN THE SYSTEM SHALL reject the request with an error
 
 ### US-002: View everyone's availability
 **As an** organizer
@@ -25,6 +30,9 @@ WHEN I submit a range longer than 24 hours THEN THE SYSTEM SHALL reject the requ
 
 **Acceptance Criteria:**
 WHEN I request an event's availability THEN THE SYSTEM SHALL return every participant and their ranges
+WHEN I request an event's availability THEN THE SYSTEM SHALL render each range as wall-clock times in my timezone together with the timezone label
+WHEN my timezone is not supplied THEN THE SYSTEM SHALL fall back to the event's timezone, then to UTC
+WHEN the event's timezone option is off THEN THE SYSTEM SHALL return the raw UTC times with the label UTC
 WHEN no one has joined the event THEN THE SYSTEM SHALL return an empty participant list
 
 ### US-003: View one participant's availability
@@ -34,6 +42,7 @@ WHEN no one has joined the event THEN THE SYSTEM SHALL return an empty participa
 
 **Acceptance Criteria:**
 WHEN I request a participant's availability for an event they belong to THEN THE SYSTEM SHALL return their ranges
+WHEN I request a participant's availability THEN THE SYSTEM SHALL render their ranges in the resolved viewer timezone and return the label
 WHEN the participant does not belong to that event THEN THE SYSTEM SHALL respond not found
 
 ## Functional Requirements
@@ -50,7 +59,7 @@ WHEN the guest id header is missing or malformed THEN THE SYSTEM SHALL respond b
 **Priority:** P0
 **Persona:** participant
 
-WHEN a participant submits their availability THEN THE SYSTEM SHALL replace all their existing ranges with the submitted ones
+WHEN a participant submits their availability THEN THE SYSTEM SHALL require their IANA timezone, interpret the ranges as wall-clock times in it, and store each range as canonical UTC instants, replacing all their existing ranges
 WHEN the requester's guest id does not match the participant THEN THE SYSTEM SHALL respond forbidden
 
 ### FR-003: List availability for an event
@@ -65,16 +74,30 @@ WHEN an event's availability is requested THEN THE SYSTEM SHALL return a flat li
 
 WHEN a specific participant's availability is requested THEN THE SYSTEM SHALL return that participant's ranges, provided they belong to the event
 
+### FR-005: Timezone-aware rendering
+**Priority:** P0
+**Persona:** organizer
+
+WHEN availability is read THEN THE SYSTEM SHALL render each stored UTC range as
+wall-clock times in the viewer's timezone and return the timezone label; the
+frame resolves viewer → event → UTC, and is forced to UTC when the event's
+timezone option is off.
+
 ## Non-Functional Requirements
 
 ### NFR-001: Access control
 The only access control is the shareable public id plus the per-browser guest id;
 there is no real authentication in this MVP.
 
+### NFR-002: Timezone transparency
+The backend owns all timezone conversion. Clients submit wall-clock times with
+their timezone and render the wall-clock times and label they receive without
+converting; every range identifies its absolute start and end unambiguously.
+
 ## Out of Scope
 
-- Timezone: events and participants carry a timezone column but it is always
-  null; timezone-aware scheduling is a future feature.
+- Cross-timezone scheduling: the system stores and renders times in timezones
+  but does not suggest a common slot or analyze overlaps.
 - Overlap validation: the server enforces end-after-start and a 24-hour maximum
   duration only; it does not reject overlapping ranges.
 - Real authentication beyond the public id + guest id trust model.

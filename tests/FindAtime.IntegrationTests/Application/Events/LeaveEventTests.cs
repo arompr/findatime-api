@@ -26,7 +26,7 @@ public class LeaveEventTests : IntegrationTest
     {
         var created = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
-        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, "Bob");
+        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, "Bob", "UTC");
 
         await _leaveEvent.Execute(created.PublicId, FriendGuestId);
 
@@ -39,7 +39,7 @@ public class LeaveEventTests : IntegrationTest
     {
         var created = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
-        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, "Bob");
+        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, "Bob", "UTC");
 
         await _leaveEvent.Execute(created.PublicId, FriendGuestId);
         await _leaveEvent.Execute(created.PublicId, FriendGuestId);

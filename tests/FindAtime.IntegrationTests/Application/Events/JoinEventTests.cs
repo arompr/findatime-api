@@ -19,6 +19,7 @@ public class JoinEventTests : IntegrationTest
 
     private const string FriendGuestId = "22222222-2222-2222-2222-222222222222";
     private const string FriendName = "Bob";
+    private const string FriendTimezone = "Europe/Berlin";
 
     [Fact]
     public async Task Execute_ShouldJoinNewParticipant()
@@ -27,13 +28,15 @@ public class JoinEventTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         var response = await _joinEvent.Execute(
-            created.PublicId, created.Passcode, FriendGuestId, FriendName);
+            created.PublicId, created.Passcode, FriendGuestId, FriendName, FriendTimezone);
 
         Assert.Equal(FriendName, response.Name);
 
         var persisted = await _repository.GetByPublicId(created.PublicId);
         Assert.NotNull(persisted);
         Assert.Equal(2, persisted.Participants.Count);
+        var friend = persisted.Participants.Single(p => p.GuestId.Value == FriendGuestId);
+        Assert.Equal(FriendTimezone, friend.Timezone);
     }
 
     [Fact]
@@ -43,7 +46,7 @@ public class JoinEventTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         var response = await _joinEvent.Execute(
-            created.PublicId, null, FriendGuestId, FriendName);
+            created.PublicId, null, FriendGuestId, FriendName, FriendTimezone);
 
         Assert.Equal(FriendName, response.Name);
 
@@ -59,7 +62,7 @@ public class JoinEventTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await Assert.ThrowsAsync<InvalidPasscodeException>(() => _joinEvent.Execute(
-            created.PublicId, "WRONG6", FriendGuestId, FriendName));
+            created.PublicId, "WRONG6", FriendGuestId, FriendName, FriendTimezone));
     }
 
     [Fact]
@@ -69,7 +72,17 @@ public class JoinEventTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await Assert.ThrowsAsync<InvalidPasscodeException>(() => _joinEvent.Execute(
-            created.PublicId, null, FriendGuestId, FriendName));
+            created.PublicId, null, FriendGuestId, FriendName, FriendTimezone));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowForUnknownTimezone()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
+
+        await Assert.ThrowsAsync<InvalidTimezoneException>(() => _joinEvent.Execute(
+            created.PublicId, created.Passcode, FriendGuestId, FriendName, "Not/A_Timezone"));
     }
 
     [Fact]
@@ -78,10 +91,10 @@ public class JoinEventTests : IntegrationTest
         var created = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, FriendName);
+        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, FriendName, FriendTimezone);
 
         await Assert.ThrowsAsync<ParticipantAlreadyJoinedException>(() => _joinEvent.Execute(
-            created.PublicId, created.Passcode, FriendGuestId, FriendName));
+            created.PublicId, created.Passcode, FriendGuestId, FriendName, FriendTimezone));
 
         var persisted = await _repository.GetByPublicId(created.PublicId);
         Assert.Equal(2, persisted!.Participants.Count);
@@ -93,10 +106,10 @@ public class JoinEventTests : IntegrationTest
         var created = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, FriendName);
+        await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, FriendName, FriendTimezone);
 
         await Assert.ThrowsAsync<ParticipantAlreadyJoinedException>(() => _joinEvent.Execute(
-            created.PublicId, created.Passcode, FriendGuestId, "Robert"));
+            created.PublicId, created.Passcode, FriendGuestId, "Robert", FriendTimezone));
     }
 
     [Fact]
@@ -106,7 +119,7 @@ public class JoinEventTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
         await Assert.ThrowsAsync<ParticipantAlreadyJoinedException>(() => _joinEvent.Execute(
-            created.PublicId, created.Passcode, TestEvents.OrganizerGuestId, TestEvents.OrganizerName));
+            created.PublicId, created.Passcode, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, FriendTimezone));
 
         var persisted = await _repository.GetByPublicId(created.PublicId);
         Assert.Single(persisted!.Participants);
@@ -116,6 +129,6 @@ public class JoinEventTests : IntegrationTest
     public async Task Execute_ShouldThrowForUnknownEvent()
     {
         await Assert.ThrowsAsync<EventNotFoundException>(() => _joinEvent.Execute(
-            "nonexistent1", "ABC234", FriendGuestId, FriendName));
+            "nonexistent1", "ABC234", FriendGuestId, FriendName, FriendTimezone));
     }
 }

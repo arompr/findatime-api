@@ -25,4 +25,9 @@ public class Participant
         this.Name = name;
         this.EventId = eventId;
     }
+
+    public void SetTimezone(string? timezone)
+    {
+        this.Timezone = timezone;
+    }
 }

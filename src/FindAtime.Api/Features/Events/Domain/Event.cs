@@ -18,8 +18,7 @@ public class Event
     [Column("organizer_participant_id")]
     public ParticipantId OrganizerParticipantId { get; private set; }
 
-    [Column("timezone")]
-    public string? Timezone { get; private set; }
+    public EventParams Params { get; private set; }
 
     public PasscodeHash? PasscodeHash { get; private set; }
 
@@ -35,6 +34,7 @@ public class Event
         string name,
         ParticipantId organizerParticipantId,
         PasscodeHash? passcodeHash,
+        EventParams eventParams,
         List<Participant> participants
     )
     {
@@ -43,7 +43,13 @@ public class Event
         this.Name = name;
         this.OrganizerParticipantId = organizerParticipantId;
         this.PasscodeHash = passcodeHash;
+        this.Params = eventParams;
         this._participants = [.. participants];
+    }
+
+    public void SetParams(EventParams @params)
+    {
+        this.Params = @params;
     }
 
     public static Event Create(
@@ -55,7 +61,7 @@ public class Event
     )
     {
         organizer.EventId = id;
-        return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, [organizer]);
+        return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, new EventParams(null), [organizer]);
     }
 
     public void AddParticipant(Participant participant)
@@ -70,6 +76,6 @@ public class Event
         return removed > 0;
     }
 
-    public Participant? FindParticipant(ParticipantId participantId)
-        => this._participants.SingleOrDefault(p => p.ParticipantId == participantId);
+    public Participant? FindParticipant(ParticipantId participantId) =>
+        this._participants.SingleOrDefault(p => p.ParticipantId == participantId);
 }

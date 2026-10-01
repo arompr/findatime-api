@@ -1,5 +1,7 @@
 # 003-events-timezone-support: Tasks
 
+Landed: 2026-09-27T17:34:44Z
+
 Ordered. Each task depends on the ones above it unless marked `[P]`
 (parallel-safe). Each task ends with a `Verified: <iso>` stamp once its
 **Verification** has passed. A fully landed change additionally carries a
@@ -67,14 +69,16 @@ on the organizer/create path).
   `EventFactory` valid (organizer timezone remains null at create).
 
 **Acceptance criteria:**
-- [ ] `Event` exposes `Params` (not a bare `Timezone`) and defaults to `new EventParams(null)` (option off).
-- [ ] `Event.SetParams` replaces the whole `Params` value object.
-- [ ] `Participant.SetTimezone` sets the stored timezone.
-- [ ] `ParticipantFactory.CreateParticipant(..., timezone)` records the supplied timezone; the organizer/create path still compiles with timezone null.
-- [ ] No remaining references to `Event.Timezone` anywhere in `src/`.
+- [x] `Event` exposes `Params` (not a bare `Timezone`) and defaults to `new EventParams(null)` (option off).
+- [x] `Event.SetParams` replaces the whole `Params` value object.
+- [x] `Participant.SetTimezone` sets the stored timezone.
+- [x] `ParticipantFactory.CreateParticipant(..., timezone)` records the supplied timezone; the organizer/create path still compiles with timezone null.
+- [x] No remaining references to `Event.Timezone` anywhere in `src/`.
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 3 — EF write mapping: DbContext complex property for EventParams
 
@@ -90,12 +94,14 @@ column (no migration) via a complex-property mapping.
   used to provide).
 
 **Acceptance criteria:**
-- [ ] `EventParams.Timezone` maps to the existing `events.timezone` column (named `timezone`, not `Params_Timezone`).
-- [ ] No schema delta: `dotnet ef migrations has-pending-model-changes --project src/FindAtime.Api/FindAtime.Api.csproj` reports no changes.
+- [x] `EventParams.Timezone` maps to the existing `events.timezone` column (named `timezone`, not `Params_Timezone`).
+- [x] No schema delta: `dotnet ef migrations has-pending-model-changes --project src/FindAtime.Api/FindAtime.Api.csproj` reports no changes.
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
 - `dotnet ef migrations has-pending-model-changes --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 4 — Events read infra: expose event timezone `[P]`
 
@@ -113,11 +119,13 @@ availability reads and `GetEvent` can use it as the fallback frame.
   read `timezone` via `IsDBNull → null`.
 
 **Acceptance criteria:**
-- [ ] `EventDto.Timezone` is populated for events with a set timezone and null otherwise.
-- [ ] The existing `SearchEvents` path is unaffected.
+- [x] `EventDto.Timezone` is populated for events with a set timezone and null otherwise.
+- [x] The existing `SearchEvents` path is unaffected.
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 5 — Events: capture timezone on join (application + API)
 
@@ -138,13 +146,15 @@ validating it and rejecting unknown ids.
   and pass `requestParams.Timezone` to `joinEvent.Execute`.
 
 **Acceptance criteria:**
-- [ ] Join records the participant timezone even when the event timezone option is off.
-- [ ] Blank timezone → 400 `timezone is required` (inline BadRequest).
-- [ ] Unknown IANA id → 400 `invalid_timezone` (via `InvalidTimezoneException`).
-- [ ] The duplicate-join guard still fires before any timezone work.
+- [x] Join records the participant timezone even when the event timezone option is off.
+- [x] Blank timezone → 400 `timezone is required` (inline BadRequest).
+- [x] Unknown IANA id → 400 `invalid_timezone` (via `InvalidTimezoneException`).
+- [x] The duplicate-join guard still fires before any timezone work.
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 6 — Events: update-event-params endpoint + GetEventResponse.Timezone (application + API)
 
@@ -177,13 +187,15 @@ validating it and rejecting unknown ids.
     return `200` with `UpdateEventParamsResponse`; `.Produces(200, 400, 403, 404)`.
 
 **Acceptance criteria:**
-- [ ] Organizer can enable/change/disable the timezone option; a non-organizer gets 403 `forbidden`.
-- [ ] Unknown IANA id → 400 `invalid_timezone`; `null` timezone disables (option off).
-- [ ] `GET /events/{publicId}` returns the event `timezone` (null when off).
-- [ ] The endpoint is idempotent (full-replace).
+- [x] Organizer can enable/change/disable the timezone option; a non-organizer gets 403 `forbidden`.
+- [x] Unknown IANA id → 400 `invalid_timezone`; `null` timezone disables (option off).
+- [x] `GET /events/{publicId}` returns the event `timezone` (null when off).
+- [x] The endpoint is idempotent (full-replace).
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 7 — Availability: timezone-aware write + viewer-timezone read (application + API + DTOs)
 
@@ -235,15 +247,17 @@ viewer frame (with the timezone label), honoring the off→UTC legacy path.
       `TimezoneConverter.Resolve` (invalid → 400 `invalid_timezone`), else pass null.
 
 **Acceptance criteria:**
-- [ ] Submitting wall-clock ranges in a participant timezone stores the correct UTC instants (end-after-start / ≤24h measured on UTC).
-- [ ] A malformed, offset-bearing, ambiguous, or DST-gap range → 400 `invalid_availability_range`; unknown timezone → 400 `invalid_timezone`.
-- [ ] With the option off, reads return UTC wall-clock with label `UTC` (legacy, no conversion).
-- [ ] With the option on, participant B sees participant A's 18:00–20:00 (tz X) as the correct local times in tz Y, with the resolved label.
-- [ ] Viewer frame falls back viewer body timezone → event timezone → UTC.
-- [ ] The two read endpoints are reachable via `QUERY` on their original paths.
+- [x] Submitting wall-clock ranges in a participant timezone stores the correct UTC instants (end-after-start / ≤24h measured on UTC).
+- [x] A malformed, offset-bearing, ambiguous, or DST-gap range → 400 `invalid_availability_range`; unknown timezone → 400 `invalid_timezone`.
+- [x] With the option off, reads return UTC wall-clock with label `UTC` (legacy, no conversion).
+- [x] With the option on, participant B sees participant A's 18:00–20:00 (tz X) as the correct local times in tz Y, with the resolved label.
+- [x] Viewer frame falls back viewer body timezone → event timezone → UTC.
+- [x] The two read endpoints are reachable via `QUERY` on their original paths.
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 8 — Composition/DI: register converter + UpdateEventParams
 
@@ -261,11 +275,13 @@ application resolves them at runtime.
     constructor parameter (added in Tasks 5/7); DI now resolves it.
 
 **Acceptance criteria:**
-- [ ] `TimezoneConverter` resolves as a singleton; `UpdateEventParams` resolves as scoped.
-- [ ] `JoinEvent`, `SetAvailability`, `GetEventAvailabilities`, `GetParticipantAvailability` receive `TimezoneConverter`.
+- [x] `TimezoneConverter` resolves as a singleton; `UpdateEventParams` resolves as scoped.
+- [x] `JoinEvent`, `SetAvailability`, `GetEventAvailabilities`, `GetParticipantAvailability` receive `TimezoneConverter`.
 
 **Verification:**
 - `dotnet build --project src/FindAtime.Api/FindAtime.Api.csproj`
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 9 — Tests: update and add unit + integration coverage
 
@@ -298,12 +314,14 @@ coverage for conversion, the params endpoint, and viewer-timezone rendering.
   converted times + label when on, and the viewer→event→UTC fallback chain.
 
 **Acceptance criteria:**
-- [ ] All pre-existing tests pass under the new contracts.
-- [ ] New tests assert: valid/invalid IANA resolution; DST-gap rejection; option-off returns UTC label; option-on converts across timezones; params-endpoint authorization; fallback chain.
+- [x] All pre-existing tests pass under the new contracts.
+- [x] New tests assert: valid/invalid IANA resolution; DST-gap rejection; option-off returns UTC label; option-on converts across timezones; params-endpoint authorization; fallback chain.
 
 **Verification:**
 - `dotnet test`
 - `dotnet test --filter TimezoneConverter` (focused)
+
+Verified: 2026-09-27T16:55:14Z
 
 ## Task 10 — TypeScript client regeneration
 
@@ -322,13 +340,15 @@ timezone shapes) are reflected.
   `GetEventAvailabilitiesResponse`, `GetEventResponse`, `JoinEventRequestParams`).
 
 **Acceptance criteria:**
-- [ ] Generated client contains the new/renamed models and endpoint methods.
-- [ ] No stale `DateTimeOffset`-typed availability fields remain in the generated models.
-- [ ] `npm run prepare` completes without errors.
+- [x] Generated client contains the new/renamed models and endpoint methods.
+- [x] No stale `DateTimeOffset`-typed availability fields remain in the generated models.
+- [x] `npm run prepare` completes without errors.
 
 **Verification:**
 - `make typescript-client`
 - Inspect `typescript-client/dist/generated/**` for the new models/endpoints.
+
+Verified: 2026-09-27T16:55:14Z
 
 ---
 

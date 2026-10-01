@@ -29,6 +29,8 @@ WHEN I join a passcode-protected event with the correct passcode THEN THE SYSTEM
 WHEN I supply a wrong or missing passcode for a protected event THEN THE SYSTEM SHALL respond unauthorized
 WHEN I join an event I have already joined THEN THE SYSTEM SHALL respond conflict
 WHEN I omit my participant name THEN THE SYSTEM SHALL reject the request
+WHEN I join an event THEN THE SYSTEM SHALL require my IANA timezone and record it on my participation, even when the event's timezone option is off
+WHEN I supply an unknown IANA timezone THEN THE SYSTEM SHALL reject the request
 WHEN the event does not exist THEN THE SYSTEM SHALL respond not found
 
 ### US-003: Leave an event
@@ -48,7 +50,7 @@ WHEN the event does not exist THEN THE SYSTEM SHALL respond not found
 **So that** I can see its name and whether a passcode is required
 
 **Acceptance Criteria:**
-WHEN I request an existing public id THEN THE SYSTEM SHALL return the event's public id, name, and passcode-protected flag
+WHEN I request an existing public id THEN THE SYSTEM SHALL return the event's public id, name, passcode-protected flag, and timezone (null when the timezone option is off)
 WHEN the public id does not exist THEN THE SYSTEM SHALL respond not found
 
 ### US-005: List my events
@@ -60,6 +62,18 @@ WHEN the public id does not exist THEN THE SYSTEM SHALL respond not found
 WHEN I search by my guest id THEN THE SYSTEM SHALL return every event I am a participant in, each flagged with whether I am the organizer
 WHEN I have no events THEN THE SYSTEM SHALL return an empty list
 WHEN I omit or malform my guest id THEN THE SYSTEM SHALL reject the request
+
+### US-006: Toggle timezone-aware display for an event
+**As an** organizer
+**I want to** turn timezone-aware display on or off for my event, and set its fallback timezone
+**So that** participants see availability in their own local time when I need it
+
+**Acceptance Criteria:**
+WHEN I create an event THEN THE SYSTEM SHALL leave the timezone option off by default
+WHEN I enable or change the timezone option THEN THE SYSTEM SHALL record the IANA timezone and render availability in viewers' timezones
+WHEN I disable the timezone option THEN THE SYSTEM SHALL fall back to legacy (no-conversion) behavior
+WHEN a non-organizer tries to change the option THEN THE SYSTEM SHALL respond forbidden
+WHEN I supply an unknown timezone THEN THE SYSTEM SHALL reject the request
 
 ## Functional Requirements
 
@@ -105,6 +119,22 @@ WHEN the organizer attempts to leave their own event THEN THE SYSTEM SHALL respo
 
 WHEN a guest searches their events THEN THE SYSTEM SHALL return each event with an organizer flag indicating whether the guest organized it
 
+### FR-008: Optional, toggleable event timezone
+**Priority:** P0
+**Persona:** organizer
+
+WHEN an event is created THEN THE SYSTEM SHALL leave its timezone option off;
+only the organizer SHALL be able to enable, change, or disable it afterwards,
+and an enabled option records the event's fallback display timezone.
+
+### FR-009: Capture the participant's timezone on join
+**Priority:** P0
+**Persona:** participant
+
+WHEN a participant joins an event THEN THE SYSTEM SHALL require an IANA timezone
+and record it on the participant, regardless of the event's timezone option, so
+the option can be enabled later without re-entry.
+
 ## Non-Functional Requirements
 
 ### NFR-001: Access control
@@ -116,10 +146,16 @@ Passcodes are never stored in plaintext; only a PBKDF2-SHA256 hash (100,000
 iterations, 16-byte salt, 32-byte output) is persisted, and verification uses a
 constant-time comparison.
 
+### NFR-003: Timezone option without backfill
+Enabling an event's timezone option later requires no migration or data
+re-entry: participant timezones are captured from the moment of joining, and
+existing events or participants with no timezone remain valid.
+
 ## Out of Scope
 
 - Editing or deleting an event after creation.
 - Resetting or rotating a passcode.
-- Timezone: events and participants carry a nullable timezone column that is
-  always null today.
+- Cross-timezone scheduling: events store an optional timezone and participate
+  in timezone-aware rendering, but the system does not suggest a common slot or
+  analyze overlaps across timezones.
 - Real authentication or accounts beyond the public id + guest id trust model.

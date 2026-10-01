@@ -52,12 +52,34 @@ public static class EventsRestService
                     if (dto is null)
                         throw new EventNotFoundException(publicId);
 
-                    GetEventResponse response = new(dto.PublicId, dto.Name, dto.IsPasscodeProtected);
+                    GetEventResponse response = new(dto.PublicId, dto.Name, dto.IsPasscodeProtected, dto.Timezone);
                     return Results.Ok(response);
                 }
             )
             .WithName("GetEvent")
             .Produces<GetEventResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        app.MapPut(
+                "/events/{publicId}/params",
+                async (string publicId, UpdateEventParamsRequestParams requestParams, HttpContext httpContext, UpdateEventParams updateEventParams) =>
+                {
+                    string? guestId = httpContext.Request.Headers["X-Guest-Id"].FirstOrDefault();
+                    if (string.IsNullOrWhiteSpace(guestId))
+                        return Results.BadRequest("X-Guest-Id header is required");
+
+                    if (!Guid.TryParse(guestId, out var parsedGuestId))
+                        return Results.BadRequest("X-Guest-Id header must be a valid uuid");
+
+                    UpdateEventParamsResponse response = await updateEventParams.Execute(publicId, parsedGuestId, requestParams.Timezone);
+
+                    return Results.Ok(response);
+                }
+            )
+            .WithName("UpdateEventParams")
+            .Produces<UpdateEventParamsResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapPost(
@@ -70,11 +92,15 @@ public static class EventsRestService
                     if (string.IsNullOrWhiteSpace(requestParams.ParticipantName))
                         return Results.BadRequest("participantName is required");
 
+                    if (string.IsNullOrWhiteSpace(requestParams.Timezone))
+                        return Results.BadRequest("timezone is required");
+
                     JoinEventResponse response = await joinEvent.Execute(
                         publicId,
                         requestParams.Passcode,
                         requestParams.GuestId,
-                        requestParams.ParticipantName
+                        requestParams.ParticipantName,
+                        requestParams.Timezone
                     );
 
                     return Results.Created($"/events/{publicId}/participants/{response.ParticipantId}", response);

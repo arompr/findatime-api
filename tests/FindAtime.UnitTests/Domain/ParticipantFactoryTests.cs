@@ -43,4 +43,24 @@ public class ParticipantFactoryTests
 
         Assert.False(string.IsNullOrEmpty(participant.ParticipantId.Value));
     }
+
+    [Fact]
+    public void CreateParticipant_ShouldRecordTimezone()
+    {
+        var eventId = EventId.FromString("event-1");
+
+        var participant = _factory.CreateParticipant("test-uuid", "Alice", eventId, "Europe/Berlin");
+
+        Assert.Equal("Europe/Berlin", participant.Timezone);
+    }
+
+    [Fact]
+    public void CreateParticipant_ShouldDefaultTimezoneToNull()
+    {
+        var eventId = EventId.FromString("event-1");
+
+        var participant = _factory.CreateParticipant("test-uuid", "Alice", eventId);
+
+        Assert.Null(participant.Timezone);
+    }
 }

@@ -27,9 +27,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PasscodeGenerator>();
         services.AddSingleton<PasscodeHasher>();
         services.AddSingleton<PasscodeFactory>();
+        services.AddSingleton<TimezoneConverter>();
         services.AddScoped<CreateEvent>();
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();
+        services.AddScoped<UpdateEventParams>();
 
         return services;
     }

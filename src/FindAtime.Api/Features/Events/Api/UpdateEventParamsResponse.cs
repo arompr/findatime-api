@@ -1,0 +1,1 @@
+public record UpdateEventParamsResponse(string? Timezone);

@@ -30,6 +30,9 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
                 complex.Property(p => p.Hash).HasColumnName("passcode_hash");
                 complex.Property(p => p.Salt).HasColumnName("passcode_salt");
             });
+
+            entity.ComplexProperty(e => e.Params, c =>
+                c.Property(p => p.Timezone).HasColumnName("timezone"));
         });
 
         modelBuilder.Entity<Participant>(entity =>

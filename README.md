@@ -45,6 +45,47 @@ dotnet run
 API listens on <http://localhost:5263> (OpenAPI at /openapi/v1.json). Verify:
 `GET /health`.
 
+## REST scratch files (Hurl)
+
+Each feature's REST surface has a hand-maintained, runnable scratch file under
+`src/FindAtime.Api/Features/<Feature>/Api/` (e.g. `events.hurl`,
+`availability.hurl`). They use [Hurl](https://hurl.dev) because the availability
+read endpoints use the non-standard `QUERY` verb, which common `.http` clients
+cannot send.
+
+Install Hurl with your package manager or any method from the
+[installation guide](https://hurl.dev/docs/installation.html) — for example
+`pacman -Sy hurl` (Arch), `brew install hurl` (macOS), or
+`cargo install --locked hurl`.
+
+With the API running, execute a file:
+
+```
+hurl --test src/FindAtime.Api/Features/Events/Api/events.hurl
+hurl --test src/FindAtime.Api/Features/Availability/Api/availability.hurl
+```
+
+Each entry asserts at least its status code (`HTTP 200`, `HTTP 201`, …). The
+files are self-contained and run against `http://localhost:5263`: each creates
+its own event (and, for availability, a participant) and threads the returned
+ids into later calls with [Hurl captures](https://hurl.dev/docs/capturing-response.html),
+so they can be run repeatedly without manual setup.
+
+### Inspect a single request
+
+The files are workflows, but you can run one request without splitting them out
+into separate files. Each file's header lists its entries; `--to-entry N` runs
+entries 1..N, reuses the captures made by the earlier entries, and prints only
+the last response body (pretty-printed when stdout is a terminal):
+
+```
+hurl --to-entry 3 src/FindAtime.Api/Features/Events/Api/events.hurl      # GET /events/{publicId}
+hurl --to-entry 4 src/FindAtime.Api/Features/Availability/Api/availability.hurl  # QUERY /availabilities
+```
+
+`--from-entry N` alone cannot be used for id-dependent entries, because their ids
+come from captures in the entries before them.
+
 ## Container
 
 The API image contains no DB — point it at Postgres via env vars. Env files are

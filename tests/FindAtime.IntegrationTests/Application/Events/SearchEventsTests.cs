@@ -45,8 +45,8 @@ public class SearchEventsTests : IntegrationTest
         var second = await _createEvent.Execute(
             "Second", TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
 
-        await _joinEvent.Execute(first.PublicId, first.Passcode, OtherGuestId, OtherName);
-        await _joinEvent.Execute(second.PublicId, second.Passcode, OtherGuestId, OtherName);
+        await _joinEvent.Execute(first.PublicId, first.Passcode, OtherGuestId, OtherName, "UTC");
+        await _joinEvent.Execute(second.PublicId, second.Passcode, OtherGuestId, OtherName, "UTC");
 
         var results = await _readEventService.SearchEvents(Guid.Parse(OtherGuestId));
 
@@ -62,7 +62,7 @@ public class SearchEventsTests : IntegrationTest
         var joined = await _createEvent.Execute(
             "Joined", OtherGuestId, OtherName, true);
 
-        await _joinEvent.Execute(joined.PublicId, joined.Passcode, TestEvents.OrganizerGuestId, TestEvents.OrganizerName);
+        await _joinEvent.Execute(joined.PublicId, joined.Passcode, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, "UTC");
 
         var results = await _readEventService.SearchEvents(Guid.Parse(TestEvents.OrganizerGuestId));
 
@@ -84,7 +84,7 @@ public class SearchEventsTests : IntegrationTest
     {
         var created = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, true);
-        await _joinEvent.Execute(created.PublicId, created.Passcode, OtherGuestId, OtherName);
+        await _joinEvent.Execute(created.PublicId, created.Passcode, OtherGuestId, OtherName, "UTC");
 
         await _leaveEvent.Execute(created.PublicId, OtherGuestId);
 

@@ -27,7 +27,7 @@ public class GetMyParticipantTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         var joined = await _joinEvent.Execute(
-            created.PublicId, null, FriendGuestId, FriendName);
+            created.PublicId, null, FriendGuestId, FriendName, "UTC");
 
         var result = await _getMyParticipant.Execute(created.PublicId, Guid.Parse(FriendGuestId));
 

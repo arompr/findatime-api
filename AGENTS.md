@@ -71,6 +71,15 @@ Layering rules:
 - Response objects (`*Response` records) are their own types, live in the
   `Api` folder, and are what endpoints return. Map application DTOs into them;
   do not return application DTOs directly from endpoints.
+- Every feature's REST surface has a hand-maintained [Hurl](https://hurl.dev)
+  scratch file under `Features/<Feature>/Api/<feature>.hurl` (e.g.
+  `events.hurl`, `availability.hurl`). These are not generated. Whenever a
+  route, HTTP method, request body/header, or response shape changes, update the
+  matching request(s) in the same change. Hurl is used because the availability
+  read endpoints take the non-standard `QUERY` verb, which common `.http`
+  clients cannot send. Each file is a workflow that captures ids across entries;
+  its header lists the entries so a single request can be inspected with
+  `hurl --to-entry N <file>` (see README).
 - Keep the read and write sides separated (CQRS-lite): writes via EF Core,
   reads via raw SQL + Dapper.
 - SQL read queries live in `*.sql` files embedded as resources, referenced by
@@ -164,6 +173,12 @@ dotnet ef migrations add <Name> --project src/FindAtime.Api/FindAtime.Api.csproj
 
 # Run the tests
 dotnet test
+
+# Run a feature's REST scratch file (Hurl; see README)
+hurl --test src/FindAtime.Api/Features/Events/Api/events.hurl
+
+# Inspect a single request from that file (runs entries 1..N, prints the last body)
+hurl --to-entry 3 src/FindAtime.Api/Features/Events/Api/events.hurl
 
 # Build / verify
 dotnet build

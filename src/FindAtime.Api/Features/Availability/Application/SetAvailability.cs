@@ -3,22 +3,26 @@ public class SetAvailability
     private EventRepository _eventRepository;
     private AvailabilityFactory _availabilityFactory;
     private AvailabilityRepository _availabilityRepository;
+    private TimezoneConverter _timezoneConverter;
 
     public SetAvailability(
         EventRepository eventRepository,
         AvailabilityFactory availabilityFactory,
-        AvailabilityRepository availabilityRepository
+        AvailabilityRepository availabilityRepository,
+        TimezoneConverter timezoneConverter
     )
     {
         _eventRepository = eventRepository;
         _availabilityFactory = availabilityFactory;
         _availabilityRepository = availabilityRepository;
+        _timezoneConverter = timezoneConverter;
     }
 
     public async Task<SetAvailabilityResult> Execute(
         string publicId,
         Guid participantId,
         Guid guestId,
+        string timezone,
         IReadOnlyList<AvailabilityRangeResult> ranges
     )
     {
@@ -36,8 +40,14 @@ public class SetAvailability
         if (participant.GuestId != requestGuestId)
             throw new ForbiddenException($"Guest id '{guestId}' does not match participant '{participantId}'.");
 
+        _timezoneConverter.Resolve(timezone);
+        participant.SetTimezone(timezone);
+
         List<Availability> availabilities = ranges
-            .Select(r => _availabilityFactory.Create(pid, r.Start, r.End))
+            .Select(r => _availabilityFactory.Create(
+                pid,
+                _timezoneConverter.ToUtc(r.Start, timezone),
+                _timezoneConverter.ToUtc(r.End, timezone)))
             .ToList();
 
         await _availabilityRepository.DeleteForParticipant(pid);
@@ -46,8 +56,11 @@ public class SetAvailability
         return new SetAvailabilityResult(
             participant.ParticipantId.Value,
             participant.Name,
+            timezone,
             availabilities
-                .Select(a => new AvailabilityRangeResult(a.Start, a.End))
+                .Select(a => new AvailabilityRangeResult(
+                    _timezoneConverter.ToWallClock(a.Start, timezone),
+                    _timezoneConverter.ToWallClock(a.End, timezone)))
                 .ToList()
         );
     }

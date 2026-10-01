@@ -205,4 +205,44 @@ public class EventTests
         Assert.False(removed);
         Assert.Single(@event.Participants);
     }
+
+    [Fact]
+    public void Create_ShouldDefaultParamsToNullTimezone()
+    {
+        var id = EventId.FromString("event-1");
+        var publicId = PublicId.FromString("abc123");
+        var participant = new Participant(
+            ParticipantId.FromString("p-1"),
+            GuestId.FromString("uuid-1"),
+            "Alice",
+            EventId.FromString("temp")
+        );
+
+        var @event = Event.Create(id, publicId, "Team Meeting", participant, null);
+
+        Assert.Null(@event.Params.Timezone);
+    }
+
+    [Fact]
+    public void SetParams_ShouldReplaceParams()
+    {
+        var id = EventId.FromString("event-1");
+        var publicId = PublicId.FromString("abc123");
+        var participant = new Participant(
+            ParticipantId.FromString("p-1"),
+            GuestId.FromString("uuid-1"),
+            "Alice",
+            EventId.FromString("temp")
+        );
+
+        var @event = Event.Create(id, publicId, "Team Meeting", participant, null);
+
+        @event.SetParams(new EventParams("Europe/Berlin"));
+
+        Assert.Equal("Europe/Berlin", @event.Params.Timezone);
+
+        @event.SetParams(new EventParams(null));
+
+        Assert.Null(@event.Params.Timezone);
+    }
 }
