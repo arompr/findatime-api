@@ -1,8 +1,8 @@
 # @arompr/findatime-typescript-client
 
 TypeScript types and fetch client for the Findatime REST API. Auto-generated
-from the BE's OpenAPI document and published to GitHub Packages. One named type
-per API DTO.
+from the BE's OpenAPI document with [Hey API](https://heyapi.dev/) and published
+to GitHub Packages. One named type per API DTO, plus a typed client.
 
 ## Publishing
 
@@ -26,41 +26,57 @@ npm install @arompr/findatime-typescript-client
 import type { CreateEventResponse } from "@arompr/findatime-typescript-client";
 ```
 
-Each BE DTO has a matching named export. See `src/generated/models/` in the
+Each BE DTO has a matching named export. See `src/generated/types.gen.ts` in the
 package source for the full list.
 
 ## Client usage
 
-The package also ships a typed `fetch` client (`FindAtimeApiService`) and its
-configuration object (`OpenAPI`). Configure the base URL once at app startup,
-then call the static methods.
+The package also ships a typed `fetch` client. Configure the base URL (and any
+default headers) once at app startup, then call the `FindAtimeApi` methods:
 
 ```ts
-import { OpenAPI, FindAtimeApiService } from "@arompr/findatime-typescript-client";
+import { client, FindAtimeApi } from "@arompr/findatime-typescript-client";
 
-OpenAPI.BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5263";
-
-const created = await FindAtimeApiService.createEvent({
-    name: "Team sync",
-    guestId: "11111111-1111-1111-1111-111111111111",
-    organizerName: "Alice",
+client.setConfig({
+    baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5263",
+    headers: { "X-Guest-Id": guestId },
 });
-// `created` is typed as CreateEventResponse
+
+const { data, error } = await FindAtimeApi.createEvent({
+    body: {
+        name: "Team sync",
+        guestId: "11111111-1111-1111-1111-111111111111",
+        organizerName: "Alice",
+        isPasscodeProtected: false,
+    },
+});
+// `data` is typed as CreateEventResponse when `error` is undefined
 ```
 
-To set a bearer token or extra headers:
+To send a bearer token or extra headers per request, pass them on the call or
+set them on the client:
 
 ```ts
-OpenAPI.TOKEN = "bearer-token";
-OpenAPI.HEADERS = { "X-Guest-Id": guestId };
+client.setConfig({ headers: { Authorization: `Bearer ${token}` } });
 ```
 
-All service methods return a `CancelablePromise`, which is a thenable — `await`
-and `.then()` work exactly like a native `Promise`.
+Every method returns a native `Promise` resolving to `{ data, error, response }`
+(the `error` field carries the typed error union on a non-2xx response). Set
+`client.setConfig({ responseStyle: "data" })` to resolve directly to `data`
+instead, or `client.setConfig({ throwOnError: true })` to throw on errors.
 
-If you prefer to bring your own HTTP layer (axios, TanStack Query, etc.),
-import the types only:
+If you prefer to bring your own HTTP layer (axios, TanStack Query, etc.), import
+the types only:
 
 ```ts
 import type { CreateEventResponse } from "@arompr/findatime-typescript-client";
 ```
+
+## QUERY endpoints
+
+The availability read endpoints (`getEventAvailabilities`,
+`getParticipantAvailability`) use the non-standard `QUERY` HTTP method (RFC
+10008, first-class in OpenAPI 3.2). Hey API does not yet emit operations for
+`QUERY` (see hey-api/hey-api#2660), so these two methods are hand-written in
+`src/query.ts` and exposed through `FindAtimeApi` alongside the generated ones.
+They take the same `{ body, path }` options shape as the generated SDK methods.

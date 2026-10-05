@@ -26,7 +26,7 @@ published to GitHub Packages as `@arompr/findatime-typescript-client` (see
 
 ## Prerequisites
 
-- .NET SDK 10
+- .NET SDK 11
 - Podman (`podman compose`)
 
 ## Quick start

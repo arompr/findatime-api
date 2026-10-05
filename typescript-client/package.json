@@ -12,12 +12,12 @@
     "registry": "https://npm.pkg.github.com/"
   },
   "scripts": {
-    "gen": "openapi --input ../src/FindAtime.Api/obj/FindAtime.Api.json --output src/generated --useUnionTypes",
+    "gen": "openapi-ts -f openapi-ts.config.ts",
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run gen && npm run build"
   },
   "devDependencies": {
-    "openapi-typescript-codegen": "^0.29.0",
+    "@hey-api/openapi-ts": "^0.99.0",
     "typescript": "^5.6.0"
   }
 }
