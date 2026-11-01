@@ -89,6 +89,20 @@ WHEN I supply an interval outside those values THEN THE SYSTEM SHALL reject the 
 WHEN a non-organizer tries to change the interval THEN THE SYSTEM SHALL respond forbidden
 WHEN I change the interval THEN THE SYSTEM SHALL leave already-submitted availability exactly as it was stored
 
+### US-008: Delete an event
+**As an** organizer
+**I want to** delete an event I created
+**So that** events that are over or were cancelled stop appearing for me and for
+everyone who joined
+
+**Acceptance Criteria:**
+WHEN I delete my own event THEN THE SYSTEM SHALL remove the event, every participant, and every participant's availability ranges
+WHEN other participants are still joined THEN THE SYSTEM SHALL still delete the event
+WHEN I delete a passcode-protected event THEN THE SYSTEM SHALL require no passcode
+WHEN a non-organizer tries to delete the event THEN THE SYSTEM SHALL respond forbidden
+WHEN the event does not exist or was already deleted THEN THE SYSTEM SHALL respond not found
+WHEN the event is deleted THEN THE SYSTEM SHALL leave no record of it and SHALL offer no recovery
+
 ## Functional Requirements
 
 ### FR-001: Generate a shareable public id
@@ -162,6 +176,21 @@ slot-suggestion algorithm.
 same grid, and the backend owning the grid arithmetic keeps the stored data
 correct even when a client submits unaligned times.
 
+### FR-011: Delete an event
+**Priority:** P1
+**Persona:** organizer
+
+WHEN the organizer deletes their own event THEN THE SYSTEM SHALL hard-delete the
+event, every participant, and every participant's availability ranges, however
+many participants remain joined; only the organizer SHALL be able to do it, no
+passcode SHALL be required, and the deletion SHALL be irreversible with no
+record kept.
+
+**Rationale:** The organizer is the one participant who cannot leave their own
+event, so without deletion a finished or cancelled event stays alive for
+everyone who ever joined it. Gating deletion on an empty participant list would
+mean the events that matter most are the ones that cannot be removed.
+
 ## Non-Functional Requirements
 
 ### NFR-001: Access control
@@ -180,8 +209,10 @@ existing events or participants with no timezone remain valid.
 
 ## Out of Scope
 
-- Editing or deleting an event after creation.
+- Editing an event after creation (its name or its passcode).
 - Resetting or rotating a passcode.
+- Soft-deleting, restoring, or recovering a deleted event: deletion is permanent
+  and keeps no record.
 - Cross-timezone scheduling: events store an optional timezone and participate
   in timezone-aware rendering, but the system does not suggest a common slot or
   analyze overlaps across timezones.

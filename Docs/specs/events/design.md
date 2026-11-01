@@ -11,7 +11,9 @@ value object — the optional timezone and the calendar interval — and timezon
 conversion is centralized in a stateless `TimezoneConverter` singleton
 (`Resolve`/`ToUtc`/`ToWallClock`) shared with the availability paths. The
 interval's allowed set, default, and grid arithmetic live in a stateless
-`Common/Interval` helper shared with the availability write path.
+`Common/Interval` helper shared with the availability write path. The organizer
+can hard-delete the event; the removal cascades from `events` to `participants`
+to `availabilities` through the schema's foreign keys.
 
 ## Domain Model
 
@@ -53,6 +55,10 @@ computed in integer ticks (idempotent on an exact boundary, carrying across
 midnight). It is a static helper, so it needs no DI registration and is used by
 both the events domain and the availability application layer.
 
+`Event` has no deletion method: deleting the aggregate is a persistence
+operation, and the only rule involved — organizer-only — is enforced in the
+`DeleteEvent` use case, exactly as `UpdateEventParams` enforces it.
+
 Passcodes are a small bounded sub-domain: `PasscodePolicy` fixes the alphabet
 (`ABCDEFGHJKMNPQRSTUVWXYZ23456789`, ambiguous chars removed), length 6, PBKDF2
 iterations 100,000, 16-byte salt, and 32-byte hash. `PasscodeFactory` returns a
@@ -67,6 +73,7 @@ iterations 100,000, 16-byte salt, and 32-byte hash. `PasscodeFactory` returns a
 - `PUT /events/{publicId}/params` → 200 `{ timezone, intervalMinutes }` (organizer-only, full-replace over both fields)
 - `POST /events/{publicId}/join` → 201 `{ participantId, name }` (requires `timezone`)
 - `POST /events/{publicId}/leave` → 204
+- `DELETE /events/{publicId}` → 204 (organizer-only, no body; removes the event, its participants, and their availability)
 
 All endpoints address an event by its shareable `publicId`; the internal UUID is
 never exposed to clients. Request-shape validation (malformed uuid, blank
@@ -81,6 +88,15 @@ exceptions mapped in `Common/ExceptionHandler`:
 `InvalidTimezoneException` → 400 `invalid_timezone`,
 `InvalidIntervalException` → 400 `invalid_interval`,
 `ForbiddenException` → 403 `forbidden`.
+
+The delete endpoint parses `X-Guest-Id` with the same inline
+`Results.BadRequest` block as the params endpoint (missing or blank → "X-Guest-Id
+header is required", non-uuid → "X-Guest-Id header must be a valid uuid") before
+any lookup, and answers `Results.NoContent()`. It introduces no new exception
+type or error code: the existing `EventNotFoundException` (404
+`event_not_found`) and `ForbiddenException` (403 `forbidden`) mappings cover its
+failures. Deletion is not idempotent — a second delete finds no event and returns
+404, like every other command on a missing event.
 
 ## Persistence
 
@@ -121,6 +137,19 @@ domain default cannot drift. `participants.timezone` (nullable text) holds the
 participant's IANA timezone, captured at join and refreshed on availability
 submit.
 
+`EventRepository.Delete` removes the loaded aggregate with EF Core
+(`DbContext.Events.Remove` + `SaveChangesAsync`) and relies on the schema's two
+cascade foreign keys for the cleanup: `participants.event_id → events.id` and
+`availabilities.participant_id → participants.id` are both `ON DELETE CASCADE`.
+`GetByPublicId` loads the participants, so EF marks them `Deleted` as well and
+emits their DELETEs before the event's — no FK violation. Availability rows are
+neither loaded nor tracked by the aggregate, so EF issues nothing for them; the
+database cascade removes them when the participant rows go. The removal is a
+single `SaveChangesAsync` transaction. The cascade FKs predate deletion, so
+deleting requires no schema change and no migration. The redundant participant
+DELETEs are the accepted cost of keeping one write style (EF for writes, Dapper
+for reads): participant counts are small.
+
 ## Validation
 
 - `guestId` must be a valid UUID (create/join/leave/search).
@@ -135,6 +164,11 @@ submit.
 - A protected event requires a matching passcode to join.
 - A guest may join an event only once.
 - The organizer cannot leave their own event.
+- Only the organizer may delete an event; a valid `X-Guest-Id` header is
+  required, and a missing, blank, or malformed one is a request-shape 400 before
+  any lookup.
+- Deleting an event requires no passcode and succeeds regardless of how many
+  participants are still joined.
 
 ## Application Flow
 
@@ -154,6 +188,11 @@ intervalMinutes)` (validates the interval, `InvalidIntervalException`) →
 Leave: API → `LeaveEvent` → `EventRepository.GetByPublicId` → organizer guard →
 `Event.RemoveParticipant` → `EventRepository.Save`.
 
+Delete: API → `DeleteEvent` → `EventRepository.GetByPublicId` (loads
+participants) → organizer check (`ForbiddenException`) → `EventRepository.Delete`
+(EF `Remove` + `SaveChangesAsync`), with participants removed by EF and their
+availability by the database cascade.
+
 Reads: API → `ReadEventService` (Dapper raw SQL: `get_event_by_public_id.sql`,
 `search_events.sql`) → PostgreSQL via a shared `NpgsqlDataSource`. The event read
 selects `interval_minutes` into `EventDto.IntervalMinutes`; the search query is
@@ -165,4 +204,8 @@ unchanged and carries no params.
 - Interval validation and grid arithmetic (floor/ceil, exact boundaries,
   cross-midnight) → unit tests, no DI.
 - Use cases and repositories → integration tests.
+- Deletion → integration tests: organizer success with participants still
+  joined, the availability cascade (no ranges left for the former participants),
+  non-organizer and stranger 403, missing event 404, second delete 404, and a
+  passcode-protected event deleting without a passcode.
 - HTTP endpoints → integration tests against Testcontainers PostgreSQL.

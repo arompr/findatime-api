@@ -42,6 +42,7 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();
         services.AddScoped<UpdateEventParams>();
+        services.AddScoped<DeleteEvent>();
         services.AddScoped<GetMyParticipant>();
         services.AddScoped<GetEventAvailabilities>();
         services.AddScoped<GetParticipantAvailability>();

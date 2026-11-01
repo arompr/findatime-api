@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();
         services.AddScoped<UpdateEventParams>();
+        services.AddScoped<DeleteEvent>();
 
         return services;
     }

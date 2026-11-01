@@ -34,4 +34,10 @@ public class EventRepository
 
         return events.SingleOrDefault();
     }
+
+    public async Task Delete(Event domainEvent)
+    {
+        this._dbContext.Events.Remove(domainEvent);
+        await this._dbContext.SaveChangesAsync();
+    }
 }

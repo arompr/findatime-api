@@ -13,6 +13,11 @@
 #   4  PUT    /events/{publicId}/params      (X-Guest-Id; timezone + intervalMinutes required)
 #   5  POST   /events/{publicId}/join
 #   6  POST   /events/{publicId}/leave
+#   7  DELETE /events/{publicId}             (missing X-Guest-Id -> 400)
+#   8  DELETE /events/{publicId}             (blank X-Guest-Id -> 400)
+#   9  DELETE /events/{publicId}             (malformed X-Guest-Id -> 400)
+#  10  DELETE /events/{publicId}             (X-Guest-Id; organizer only -> 204)
+#  11  GET    /events/{publicId}             (assert 404 after delete)
 #
 # Static variables are defined in the first entry's [Options] and inherited by
 # the entries that follow. Ids created by earlier calls (the event's publicId and
@@ -77,3 +82,31 @@ POST {{baseUrl}}/events/{{publicId}}/leave
 }
 
 HTTP 204
+
+# Delete with a missing X-Guest-Id header (request-shape 400)
+DELETE {{baseUrl}}/events/{{publicId}}
+
+HTTP 400
+
+# Delete with a blank X-Guest-Id header (request-shape 400)
+DELETE {{baseUrl}}/events/{{publicId}}
+X-Guest-Id:
+
+HTTP 400
+
+# Delete with a malformed X-Guest-Id header (request-shape 400)
+DELETE {{baseUrl}}/events/{{publicId}}
+X-Guest-Id: not-a-uuid
+
+HTTP 400
+
+# Delete the event (organizer only)
+DELETE {{baseUrl}}/events/{{publicId}}
+X-Guest-Id: {{organizerGuestId}}
+
+HTTP 204
+
+# Assert the event is gone
+GET {{baseUrl}}/events/{{publicId}}
+
+HTTP 404

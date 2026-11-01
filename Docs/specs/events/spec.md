@@ -22,6 +22,12 @@ short public id.
   30; only the organizer can change it.
 - Changing an event's interval never re-aligns availability ranges that are
   already stored.
+- Only the organizer can delete an event.
+- Deleting an event is hard: the event, every participant, and every
+  participant's availability ranges are removed, and nothing about them is kept.
+  A deleted event cannot be recovered.
+- Deleting succeeds however many participants are still joined, and a
+  passcode-protected event is deleted without a passcode.
 
 ## State
 
@@ -77,11 +83,23 @@ minutes. The interval is validated before the timezone, and a value outside the
 allowed set is rejected as `invalid_interval`. The operation is idempotent,
 organizer-only, and never touches stored availability.
 
+### Delete
+
+The organizer deletes their own event by public id, identifying themselves with
+the `X-Guest-Id` header. Deletion removes the event, every participant, and every
+participant's availability ranges, and it succeeds however many participants are
+still joined. No passcode is required, even for a protected event: organizer
+identity is the only gate. The delete is hard — no soft-delete flag, no record,
+no recovery — and it is not idempotent: a second delete of the same public id
+finds no event.
+
 ### Query
 
 An event can be looked up by public id, including its timezone option and its
 interval. A guest can list every event they participate in, each flagged with
-whether they are the organizer; the list carries no params.
+whether they are the organizer; the list carries no params. A deleted event is
+simply gone: it is not found by public id and no longer appears in any guest's
+list.
 
 ## API
 
@@ -132,3 +150,19 @@ not a known IANA id.
 
 Body carries the guest id (uuid). Returns 204; 404 if the event is missing, 409
 if the organizer attempts to leave.
+
+### Delete an event
+`DELETE /events/{publicId}`
+
+Organizer-only, with the caller identified by the `X-Guest-Id` header; there is
+no request body. Returns 204 with no body, deleting the event together with its
+participants and their availability ranges. 400 for a missing, blank, or
+malformed guest id header (rejected before any event lookup), 403 `forbidden`
+for a non-organizer, 404 `event_not_found` when the event is missing or already
+deleted.
+
+Every read of a deleted event misses it: `GET /events/{publicId}` and
+`GET /events/{publicId}/participant` return 404 `event_not_found`, both
+availability reads (`QUERY /events/{publicId}/availabilities` and
+`QUERY /events/{publicId}/participants/{participantId}/availability`) return 404
+`event_not_found`, and the event no longer appears in `GET /events?guestId=`.

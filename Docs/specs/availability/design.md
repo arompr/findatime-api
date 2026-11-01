@@ -69,6 +69,9 @@ registered via `MapMethods(..., [HttpMethods.Query], ...)`.
 
 The table enforces `end_utc > start_utc` and `end_utc - start_utc <= 24 hours`
 as check constraints (mirrored by the factory validation).
+`availabilities.participant_id` references `participants.id` with
+`ON DELETE CASCADE`: a participant's ranges are removed with the participant, and
+so are an event's ranges when the event is deleted (see the Events design).
 
 `events.timezone` (the event's timezone option / fallback frame),
 `events.interval_minutes` (the event's calendar step, non-null, default 30), and

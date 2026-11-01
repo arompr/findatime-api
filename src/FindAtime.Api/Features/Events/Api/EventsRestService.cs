@@ -126,5 +126,27 @@ public static class EventsRestService
             )
             .WithName("LeaveEvent")
             .Produces(StatusCodes.Status204NoContent);
+
+        app.MapDelete(
+                "/events/{publicId}",
+                async (string publicId, HttpContext httpContext, DeleteEvent deleteEvent) =>
+                {
+                    string? guestId = httpContext.Request.Headers["X-Guest-Id"].FirstOrDefault();
+                    if (string.IsNullOrWhiteSpace(guestId))
+                        return Results.BadRequest("X-Guest-Id header is required");
+
+                    if (!Guid.TryParse(guestId, out var parsedGuestId))
+                        return Results.BadRequest("X-Guest-Id header must be a valid uuid");
+
+                    await deleteEvent.Execute(publicId, parsedGuestId);
+
+                    return Results.NoContent();
+                }
+            )
+            .WithName("DeleteEvent")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
