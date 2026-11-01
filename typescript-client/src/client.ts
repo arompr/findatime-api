@@ -1,5 +1,6 @@
 import {
   createEvent,
+  deleteEvent,
   getEvent,
   getMyParticipant,
   health,
@@ -18,6 +19,7 @@ export const FindAtimeApi = {
   searchEvents,
   getEvent,
   updateEventParams,
+  deleteEvent,
   joinEvent,
   leaveEvent,
   getMyParticipant,
@@ -26,3 +28,14 @@ export const FindAtimeApi = {
   getParticipantAvailability,
   health,
 };
+
+type Assert<T extends true> = T;
+
+type AllGeneratedOperationsExposed = Assert<
+  Exclude<
+    keyof typeof import("./generated/sdk.gen"),
+    keyof typeof FindAtimeApi
+  > extends never
+    ? true
+    : false
+>;
