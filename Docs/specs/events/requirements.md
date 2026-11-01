@@ -75,6 +75,20 @@ WHEN I disable the timezone option THEN THE SYSTEM SHALL fall back to legacy (no
 WHEN a non-organizer tries to change the option THEN THE SYSTEM SHALL respond forbidden
 WHEN I supply an unknown timezone THEN THE SYSTEM SHALL reject the request
 
+### US-007: Set the event's calendar interval
+**As an** organizer
+**I want to** choose the calendar step granularity of my event (15, 30, or 60
+minutes)
+**So that** participants pick times on the same coarse slots instead of
+hand-picking times that do not line up
+
+**Acceptance Criteria:**
+WHEN I create an event THEN THE SYSTEM SHALL give it a 30-minute interval without my having to choose one
+WHEN I set the interval THEN THE SYSTEM SHALL accept only 15, 30, or 60 minutes
+WHEN I supply an interval outside those values THEN THE SYSTEM SHALL reject the request with a distinct error
+WHEN a non-organizer tries to change the interval THEN THE SYSTEM SHALL respond forbidden
+WHEN I change the interval THEN THE SYSTEM SHALL leave already-submitted availability exactly as it was stored
+
 ## Functional Requirements
 
 ### FR-001: Generate a shareable public id
@@ -134,6 +148,19 @@ and an enabled option records the event's fallback display timezone.
 WHEN a participant joins an event THEN THE SYSTEM SHALL require an IANA timezone
 and record it on the participant, regardless of the event's timezone option, so
 the option can be enabled later without re-entry.
+
+### FR-010: Event interval governs availability granularity
+**Priority:** P0
+**Persona:** organizer
+
+WHEN an event carries an interval THEN THE SYSTEM SHALL treat it as that event's
+calendar step — 15, 30, or 60 minutes, defaulting to 30 — and SHALL align
+submitted availability to it; the interval is display granularity, not a
+slot-suggestion algorithm.
+
+**Rationale:** One event-level param with one meaning keeps every client on the
+same grid, and the backend owning the grid arithmetic keeps the stored data
+correct even when a client submits unaligned times.
 
 ## Non-Functional Requirements
 

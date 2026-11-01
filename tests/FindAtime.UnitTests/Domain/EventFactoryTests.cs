@@ -72,4 +72,14 @@ public class EventFactoryTests
         Assert.False(@event.IsPasscodeProtected);
         Assert.Null(@event.PasscodeHash);
     }
+
+    [Fact]
+    public void CreateEvent_ShouldDefaultParamsToInterval30()
+    {
+        var publicId = PublicId.FromString("abc123");
+
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", publicId, null);
+
+        Assert.Equal(30, @event.Params.IntervalMinutes);
+    }
 }

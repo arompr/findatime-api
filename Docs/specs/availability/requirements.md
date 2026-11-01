@@ -17,6 +17,8 @@ the viewer's timezone when the event's timezone option is on.
 **Acceptance Criteria:**
 WHEN I submit my availability ranges THEN THE SYSTEM SHALL store them and return my saved availability
 WHEN I submit my availability THEN THE SYSTEM SHALL require my IANA timezone and interpret the ranges I submit as wall-clock local times in it
+WHEN I submit a range that does not line up with the event's interval (15, 30, or 60 minutes) THEN THE SYSTEM SHALL widen it outward to the nearest grid boundaries in my timezone and return the widened times
+WHEN the organizer changes the event's interval THEN THE SYSTEM SHALL leave the ranges I already submitted exactly as they were stored
 WHEN I submit an empty list of ranges THEN THE SYSTEM SHALL clear my previous availability
 WHEN I submit a range whose end is not after its start THEN THE SYSTEM SHALL reject the request with an error
 WHEN I submit a range longer than 24 hours THEN THE SYSTEM SHALL reject the request with an error
@@ -59,7 +61,7 @@ WHEN the guest id header is missing or malformed THEN THE SYSTEM SHALL respond b
 **Priority:** P0
 **Persona:** participant
 
-WHEN a participant submits their availability THEN THE SYSTEM SHALL require their IANA timezone, interpret the ranges as wall-clock times in it, and store each range as canonical UTC instants, replacing all their existing ranges
+WHEN a participant submits their availability THEN THE SYSTEM SHALL require their IANA timezone, interpret the ranges as wall-clock times in it, snap each bound outward to the event's interval grid, and store each snapped range as canonical UTC instants, replacing all their existing ranges
 WHEN the requester's guest id does not match the participant THEN THE SYSTEM SHALL respond forbidden
 
 ### FR-003: List availability for an event

@@ -52,7 +52,7 @@ public static class EventsRestService
                     if (dto is null)
                         throw new EventNotFoundException(publicId);
 
-                    GetEventResponse response = new(dto.PublicId, dto.Name, dto.IsPasscodeProtected, dto.Timezone);
+                    GetEventResponse response = new(dto.PublicId, dto.Name, dto.IsPasscodeProtected, dto.Timezone, dto.IntervalMinutes);
                     return Results.Ok(response);
                 }
             )
@@ -71,7 +71,10 @@ public static class EventsRestService
                     if (!Guid.TryParse(guestId, out var parsedGuestId))
                         return Results.BadRequest("X-Guest-Id header must be a valid uuid");
 
-                    UpdateEventParamsResponse response = await updateEventParams.Execute(publicId, parsedGuestId, requestParams.Timezone);
+                    if (requestParams.IntervalMinutes is null)
+                        return Results.BadRequest("intervalMinutes is required");
+
+                    UpdateEventParamsResponse response = await updateEventParams.Execute(publicId, parsedGuestId, requestParams.Timezone, requestParams.IntervalMinutes.Value);
 
                     return Results.Ok(response);
                 }

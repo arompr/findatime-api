@@ -26,7 +26,7 @@ public class UpdateEventParamsTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         var response = await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin");
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin", 30);
 
         Assert.Equal("Europe/Berlin", response.Timezone);
 
@@ -41,10 +41,10 @@ public class UpdateEventParamsTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin");
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin", 30);
 
         var response = await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Asia/Tokyo");
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Asia/Tokyo", 30);
 
         Assert.Equal("Asia/Tokyo", response.Timezone);
 
@@ -59,15 +59,17 @@ public class UpdateEventParamsTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin");
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin", 30);
 
         var response = await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null);
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 30);
 
         Assert.Null(response.Timezone);
+        Assert.Equal(30, response.IntervalMinutes);
 
         var persisted = await _repository.GetByPublicId(created.PublicId);
         Assert.Null(persisted!.Params.Timezone);
+        Assert.Equal(30, persisted.Params.IntervalMinutes);
     }
 
     [Fact]
@@ -77,14 +79,14 @@ public class UpdateEventParamsTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await Assert.ThrowsAsync<ForbiddenException>(() => _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(FriendGuestId), "Europe/Berlin"));
+            created.PublicId, Guid.Parse(FriendGuestId), "Europe/Berlin", 30));
     }
 
     [Fact]
     public async Task Execute_ShouldThrowForUnknownEvent()
     {
         await Assert.ThrowsAsync<EventNotFoundException>(() => _updateEventParams.Execute(
-            "no-such-public-id", Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin"));
+            "no-such-public-id", Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin", 30));
     }
 
     [Fact]
@@ -94,6 +96,58 @@ public class UpdateEventParamsTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await Assert.ThrowsAsync<InvalidTimezoneException>(() => _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Not/A_Timezone"));
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Not/A_Timezone", 30));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldPersistIntervalMinutes()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        var response = await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin", 15);
+
+        Assert.Equal("Europe/Berlin", response.Timezone);
+        Assert.Equal(15, response.IntervalMinutes);
+
+        var persisted = await _repository.GetByPublicId(created.PublicId);
+        Assert.Equal(15, persisted!.Params.IntervalMinutes);
+    }
+
+    [Theory]
+    [InlineData(15)]
+    [InlineData(30)]
+    [InlineData(60)]
+    public async Task Execute_ShouldAcceptEachAllowedValue(int intervalMinutes)
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        var response = await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin", intervalMinutes);
+
+        Assert.Equal("Europe/Berlin", response.Timezone);
+        Assert.Equal(intervalMinutes, response.IntervalMinutes);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowForInvalidInterval()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await Assert.ThrowsAsync<InvalidIntervalException>(() => _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Europe/Berlin", 45));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldValidateIntervalBeforeTimezone()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await Assert.ThrowsAsync<InvalidIntervalException>(() => _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Not/A_Timezone", 45));
     }
 }

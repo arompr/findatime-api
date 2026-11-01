@@ -30,6 +30,8 @@ public class SetAvailability
         if (domainEvent is null)
             throw new EventNotFoundException(publicId);
 
+        int intervalMinutes = domainEvent.Params.IntervalMinutes;
+
         ParticipantId pid = ParticipantId.FromString(participantId.ToString());
 
         Participant? participant = domainEvent.FindParticipant(pid);
@@ -46,8 +48,8 @@ public class SetAvailability
         List<Availability> availabilities = ranges
             .Select(r => _availabilityFactory.Create(
                 pid,
-                _timezoneConverter.ToUtc(r.Start, timezone),
-                _timezoneConverter.ToUtc(r.End, timezone)))
+                _timezoneConverter.ToUtc(Interval.SnapStart(r.Start, intervalMinutes), timezone),
+                _timezoneConverter.ToUtc(Interval.SnapEnd(r.End, intervalMinutes), timezone)))
             .ToList();
 
         await _availabilityRepository.DeleteForParticipant(pid);

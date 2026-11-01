@@ -8,6 +8,7 @@ public class SetAvailabilityTests : IntegrationTest
     private JoinEvent _joinEvent = default!;
     private SetAvailability _setAvailability = default!;
     private GetParticipantAvailability _getParticipantAvailability = default!;
+    private UpdateEventParams _updateEventParams = default!;
 
     public SetAvailabilityTests(PostgresFixture postgres) : base(postgres) { }
 
@@ -18,6 +19,7 @@ public class SetAvailabilityTests : IntegrationTest
         _joinEvent = Scope.ServiceProvider.GetRequiredService<JoinEvent>();
         _setAvailability = Scope.ServiceProvider.GetRequiredService<SetAvailability>();
         _getParticipantAvailability = Scope.ServiceProvider.GetRequiredService<GetParticipantAvailability>();
+        _updateEventParams = Scope.ServiceProvider.GetRequiredService<UpdateEventParams>();
     }
 
     private const string FriendGuestId = "22222222-2222-2222-2222-222222222222";
@@ -178,5 +180,162 @@ public class SetAvailabilityTests : IntegrationTest
         await Assert.ThrowsAsync<InvalidAvailabilityRangeException>(() => _setAvailability.Execute(
             publicId, Guid.Parse(participantId), Guid.Parse(FriendGuestId), FriendTimezone,
             Range((Early, Early.AddHours(24).AddSeconds(1)))));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldSnapMisalignedRangesAndEcho()
+    {
+        var (publicId, participantId) = await CreateEventAndJoinFriend();
+
+        var start = new DateTime(2026, 9, 19, 9, 5, 0);
+        var end = new DateTime(2026, 9, 19, 9, 50, 0);
+
+        var result = await _setAvailability.Execute(
+            publicId, Guid.Parse(participantId), Guid.Parse(FriendGuestId), FriendTimezone,
+            Range((start, end)));
+
+        Assert.Equal(new DateTime(2026, 9, 19, 9, 0, 0), result.Ranges[0].Start);
+        Assert.Equal(new DateTime(2026, 9, 19, 10, 0, 0), result.Ranges[0].End);
+
+        var db = Scope.ServiceProvider.GetRequiredService<DbContext>();
+        var stored = await db.Availabilities
+            .Where(a => a.ParticipantId == ParticipantId.FromString(participantId))
+            .SingleAsync();
+
+        Assert.Equal(new DateTimeOffset(2026, 9, 19, 9, 0, 0, TimeSpan.Zero), stored.Start);
+        Assert.Equal(new DateTimeOffset(2026, 9, 19, 10, 0, 0, TimeSpan.Zero), stored.End);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldKeepAlignedRangesUnchanged()
+    {
+        var (publicId, participantId) = await CreateEventAndJoinFriend();
+
+        var start = new DateTime(2026, 9, 19, 9, 0, 0);
+        var end = new DateTime(2026, 9, 19, 10, 0, 0);
+
+        var result = await _setAvailability.Execute(
+            publicId, Guid.Parse(participantId), Guid.Parse(FriendGuestId), FriendTimezone,
+            Range((start, end)));
+
+        Assert.Equal(start, result.Ranges[0].Start);
+        Assert.Equal(end, result.Ranges[0].End);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldSnapInWallClockFrameBeforeUtc()
+    {
+        var (publicId, participantId) = await CreateEventAndJoinFriend("Asia/Kolkata");
+
+        var start = new DateTime(2026, 9, 19, 9, 5, 0);
+        var end = new DateTime(2026, 9, 19, 9, 50, 0);
+
+        var result = await _setAvailability.Execute(
+            publicId, Guid.Parse(participantId), Guid.Parse(FriendGuestId), "Asia/Kolkata",
+            Range((start, end)));
+
+        Assert.Equal(new DateTime(2026, 9, 19, 9, 0, 0), result.Ranges[0].Start);
+        Assert.Equal(new DateTime(2026, 9, 19, 10, 0, 0), result.Ranges[0].End);
+
+        var db = Scope.ServiceProvider.GetRequiredService<DbContext>();
+        var stored = await db.Availabilities
+            .Where(a => a.ParticipantId == ParticipantId.FromString(participantId))
+            .SingleAsync();
+
+        Assert.Equal(new DateTimeOffset(2026, 9, 19, 3, 30, 0, TimeSpan.Zero), stored.Start);
+        Assert.Equal(new DateTimeOffset(2026, 9, 19, 4, 30, 0, TimeSpan.Zero), stored.End);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldAcceptOffGridUtcForNonHourOffset()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60);
+
+        var joined = await _joinEvent.Execute(
+            created.PublicId, null, FriendGuestId, FriendName, "Asia/Kolkata");
+
+        var start = new DateTime(2026, 9, 19, 9, 0, 0);
+        var end = new DateTime(2026, 9, 19, 10, 0, 0);
+
+        var result = await _setAvailability.Execute(
+            created.PublicId, Guid.Parse(joined.ParticipantId), Guid.Parse(FriendGuestId), "Asia/Kolkata",
+            Range((start, end)));
+
+        Assert.Equal(start, result.Ranges[0].Start);
+        Assert.Equal(end, result.Ranges[0].End);
+
+        var db = Scope.ServiceProvider.GetRequiredService<DbContext>();
+        var stored = await db.Availabilities
+            .Where(a => a.ParticipantId == ParticipantId.FromString(joined.ParticipantId))
+            .SingleAsync();
+
+        Assert.Equal(new DateTimeOffset(2026, 9, 19, 3, 30, 0, TimeSpan.Zero), stored.Start);
+        Assert.Equal(new DateTimeOffset(2026, 9, 19, 4, 30, 0, TimeSpan.Zero), stored.End);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRejectSnappedRangeOver24Hours()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60);
+
+        var joined = await _joinEvent.Execute(
+            created.PublicId, null, FriendGuestId, FriendName, FriendTimezone);
+
+        var start = new DateTime(2026, 9, 19, 9, 1, 0);
+        var end = start.AddHours(24);
+
+        await Assert.ThrowsAsync<InvalidAvailabilityRangeException>(() => _setAvailability.Execute(
+            created.PublicId, Guid.Parse(joined.ParticipantId), Guid.Parse(FriendGuestId), FriendTimezone,
+            Range((start, end))));
+
+        var db = Scope.ServiceProvider.GetRequiredService<DbContext>();
+        var count = await db.Availabilities
+            .CountAsync(a => a.ParticipantId == ParticipantId.FromString(joined.ParticipantId));
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRejectSnappedBoundInDstGap()
+    {
+        var (publicId, participantId) = await CreateEventAndJoinFriend("Europe/Berlin");
+
+        var start = new DateTime(2026, 3, 29, 2, 45, 0);
+        var end = new DateTime(2026, 3, 29, 4, 0, 0);
+
+        await Assert.ThrowsAsync<InvalidAvailabilityRangeException>(() => _setAvailability.Execute(
+            publicId, Guid.Parse(participantId), Guid.Parse(FriendGuestId), "Europe/Berlin",
+            Range((start, end))));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldNotRealignStoredRangesWhenIntervalChanges()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        var joined = await _joinEvent.Execute(
+            created.PublicId, null, FriendGuestId, FriendName, FriendTimezone);
+
+        await _setAvailability.Execute(
+            created.PublicId, Guid.Parse(joined.ParticipantId), Guid.Parse(FriendGuestId), FriendTimezone,
+            Range((new DateTime(2026, 9, 19, 9, 5, 0), new DateTime(2026, 9, 19, 9, 50, 0))));
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60);
+
+        var read = await _getParticipantAvailability.Execute(
+            created.PublicId, Guid.Parse(joined.ParticipantId), null);
+
+        var range = Assert.Single(read.Ranges);
+        Assert.Equal(new DateTime(2026, 9, 19, 9, 0, 0), range.Start);
+        Assert.Equal(new DateTime(2026, 9, 19, 10, 0, 0), range.End);
     }
 }

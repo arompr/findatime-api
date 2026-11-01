@@ -12,7 +12,7 @@
 #   3  GET    /events/{publicId}/participant
 #   4  QUERY  /events/{publicId}/availabilities
 #   5  QUERY  /events/{publicId}/participants/{participantId}/availability
-#   6  PUT    /events/{publicId}/participants/{participantId}/availability
+#   6  PUT    /events/{publicId}/participants/{participantId}/availability (snaps ranges to the 30-min grid)
 #
 # Static variables are defined in the first entry's [Options] and inherited by
 # the entries that follow. The first two entries set up the event and participant
@@ -69,15 +69,20 @@ QUERY {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availabilit
 
 HTTP 200
 
-# Replace one participant's availability (wall-clock, no UTC offset)
+# Replace one participant's availability (wall-clock, no UTC offset; the
+# misaligned 18:05-18:50 range is snapped start-down/end-up to 18:00-19:00)
 PUT {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
 X-Guest-Id: {{participantGuestId}}
 {
   "timezone": "Europe/Berlin",
   "ranges": [
     { "start": "2026-09-21T09:00:00", "end": "2026-09-21T10:00:00" },
-    { "start": "2026-09-21T14:00:00", "end": "2026-09-21T15:00:00" }
+    { "start": "2026-09-21T14:00:00", "end": "2026-09-21T15:00:00" },
+    { "start": "2026-09-21T18:05:00", "end": "2026-09-21T18:50:00" }
   ]
 }
 
 HTTP 200
+[Asserts]
+jsonpath "$.ranges[2].start" == "2026-09-21T18:00:00"
+jsonpath "$.ranges[2].end" == "2026-09-21T19:00:00"

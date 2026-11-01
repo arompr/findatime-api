@@ -27,6 +27,7 @@ public class GetEventTests : IntegrationTest
         Assert.Equal(response.PublicId, dto.PublicId);
         Assert.Equal(TestEvents.Name, dto.Name);
         Assert.True(dto.IsPasscodeProtected);
+        Assert.Equal(30, dto.IntervalMinutes);
     }
 
     [Fact]

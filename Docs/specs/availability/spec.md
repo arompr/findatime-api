@@ -16,6 +16,8 @@ timezone option is on, rendered as wall-clock times in the viewer's timezone.
 - Each range is stored as a canonical UTC start/end pair, independent of the submitter's timezone.
 - Ranges are submitted as wall-clock times in the participant's timezone and read as wall-clock times in the resolved viewer frame.
 - Clearing a participant's availability is done by replacing it with no ranges.
+- Submitted wall-clock bounds are snapped outward onto the event's interval grid (15, 30, or 60 minutes) in the submitter's timezone before UTC conversion: the start moves down to the previous grid boundary, the end up to the next one.
+- Stored ranges are never re-aligned when the event's interval changes; reads return them verbatim.
 
 ## State
 
@@ -27,15 +29,35 @@ An availability range has:
 A participant has a timezone (IANA id), captured when they join or submit
 availability.
 
+The event an availability belongs to carries an interval — 15, 30, or 60
+minutes, 30 by default — which is the calendar step that submitted bounds are
+snapped to. It is an event-level setting, not a per-participant one.
+
 ## Behavior
 
 ### Replace
 
 Replacing a participant's availability removes all existing ranges and stores
 the supplied ranges. The request supplies the participant's IANA timezone and
-the ranges as wall-clock local times; each range is converted to a canonical UTC
-instant before storage. The response returns the ranges converted back to the
-participant's wall-clock times plus the timezone label.
+the ranges as wall-clock local times. Each bound is first snapped onto the
+event's interval grid in the submitter's timezone — the start floored down to the
+previous grid boundary, the end ceiled up to the next one — and the snapped
+wall-clock values are then converted to canonical UTC instants before storage. A
+bound already on the grid is unchanged. The snapped values are what is stored,
+and the response returns them converted back to the participant's wall-clock
+times plus the timezone label, so the caller sees exactly what was saved.
+
+Snapping happens in the submitter's wall-clock frame, not in the UTC frame: the
+wall clock is the frame the participant actually saw, and a submitter in a
+non-hour-offset timezone (e.g. `+05:30`) can keep their own grid even though the
+resulting UTC instants fall off it.
+
+The end-after-start and 24-hour-maximum invariants are applied to the snapped
+values. Outward rounding only widens a range, so it can never turn a valid range
+into a zero-duration one, but it can push a range that sat at the 24-hour limit
+past it; such a range is rejected as `invalid_availability_range`, never clamped
+back to the grid or to the limit. The DST gap/ambiguous rejection applies to the
+snapped bounds, exactly as it does to any other wall-clock bound.
 
 ### Query
 
@@ -44,7 +66,8 @@ participant. The request supplies an optional viewer timezone; when the event's
 timezone option is on, each stored UTC range is rendered as wall-clock in the
 viewer's frame (viewer timezone → event timezone → UTC) along with the label.
 When the option is off, times are rendered in UTC with the label `UTC` (legacy,
-no conversion).
+no conversion). Reads return stored ranges verbatim: the event's current interval
+does not re-align them, and the responses carry no interval field.
 
 ## API
 
@@ -76,6 +99,11 @@ ranges as wall-clock times.
 The request represents the participant's complete desired availability. Body
 carries the participant's IANA `timezone` and `ranges` as `{ start, end }`
 wall-clock strings without offset; 400 `timezone is required` when blank and 400
-`invalid_timezone` for an unknown id. Returns the participant id, name, timezone
-label, and the ranges as wall-clock times. Requires an `X-Guest-Id` header that
-must match the participant's guest id.
+`invalid_timezone` for an unknown id. Each bound is snapped onto the event's
+interval grid in the supplied timezone before conversion, and the ranges returned
+are the snapped ones; 400 `invalid_availability_range` for a malformed or
+offset-bearing bound, a wall-clock bound that is ambiguous or nonexistent in the
+supplied timezone, or a snapped range whose end is not after its start or whose
+duration exceeds 24 hours. Returns the participant id, name, timezone label, and
+the ranges as wall-clock times. Requires an `X-Guest-Id` header that must match
+the participant's guest id.

@@ -10,7 +10,7 @@
 #   1  POST   /events
 #   2  GET    /events?guestId=
 #   3  GET    /events/{publicId}
-#   4  PUT    /events/{publicId}/params      (X-Guest-Id)
+#   4  PUT    /events/{publicId}/params      (X-Guest-Id; timezone + intervalMinutes required)
 #   5  POST   /events/{publicId}/join
 #   6  POST   /events/{publicId}/leave
 #
@@ -44,14 +44,18 @@ GET {{baseUrl}}/events/{{publicId}}
 
 HTTP 200
 
-# Update event params (organizer only; null timezone disables the option)
+# Update event params (organizer only; timezone + intervalMinutes are both required)
 PUT {{baseUrl}}/events/{{publicId}}/params
 X-Guest-Id: {{organizerGuestId}}
 {
-    "timezone": "Europe/Berlin"
+    "timezone": "Europe/Berlin",
+    "intervalMinutes": 15
 }
 
 HTTP 200
+[Asserts]
+jsonpath "$.intervalMinutes" == 15
+jsonpath "$.timezone" == "Europe/Berlin"
 
 # Join event
 POST {{baseUrl}}/events/{{publicId}}/join

@@ -221,6 +221,7 @@ public class EventTests
         var @event = Event.Create(id, publicId, "Team Meeting", participant, null);
 
         Assert.Null(@event.Params.Timezone);
+        Assert.Equal(30, @event.Params.IntervalMinutes);
     }
 
     [Fact]
@@ -237,12 +238,20 @@ public class EventTests
 
         var @event = Event.Create(id, publicId, "Team Meeting", participant, null);
 
-        @event.SetParams(new EventParams("Europe/Berlin"));
+        @event.SetParams(new EventParams("Europe/Berlin", 15));
 
         Assert.Equal("Europe/Berlin", @event.Params.Timezone);
+        Assert.Equal(15, @event.Params.IntervalMinutes);
 
-        @event.SetParams(new EventParams(null));
+        @event.SetParams(new EventParams(null, 60));
 
         Assert.Null(@event.Params.Timezone);
+        Assert.Equal(60, @event.Params.IntervalMinutes);
+    }
+
+    [Fact]
+    public void EventParams_ShouldThrowForInvalidInterval()
+    {
+        Assert.Throws<InvalidIntervalException>(() => new EventParams(null, 45));
     }
 }

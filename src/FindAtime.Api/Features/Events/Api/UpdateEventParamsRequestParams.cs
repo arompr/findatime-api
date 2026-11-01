@@ -1,1 +1,1 @@
-public record UpdateEventParamsRequestParams(string? Timezone);
+public record UpdateEventParamsRequestParams(string? Timezone, int? IntervalMinutes);

@@ -32,7 +32,13 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
             });
 
             entity.ComplexProperty(e => e.Params, c =>
-                c.Property(p => p.Timezone).HasColumnName("timezone"));
+            {
+                c.Property(p => p.Timezone).HasColumnName("timezone");
+                c.Property(p => p.IntervalMinutes)
+                    .HasColumnName("interval_minutes")
+                    .HasDefaultValue(Interval.DefaultMinutes)
+                    .IsRequired();
+            });
         });
 
         modelBuilder.Entity<Participant>(entity =>

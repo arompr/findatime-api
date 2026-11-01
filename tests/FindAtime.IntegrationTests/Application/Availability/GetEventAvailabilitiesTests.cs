@@ -105,7 +105,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York");
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York", 30);
 
         var joined = await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, "Europe/Berlin");
@@ -130,7 +130,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York");
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York", 30);
 
         var joined = await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, "Europe/Berlin");
