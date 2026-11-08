@@ -3,12 +3,18 @@ public class GetParticipantAvailability
     private ReadEventService _readEventService;
     private ReadAvailabilityService _readAvailabilityService;
     private TimezoneConverter _timezoneConverter;
+    private AvailabilityProjection _availabilityProjection;
 
-    public GetParticipantAvailability(ReadEventService readEventService, ReadAvailabilityService readAvailabilityService, TimezoneConverter timezoneConverter)
+    public GetParticipantAvailability(
+        ReadEventService readEventService,
+        ReadAvailabilityService readAvailabilityService,
+        TimezoneConverter timezoneConverter,
+        AvailabilityProjection availabilityProjection)
     {
         _readEventService = readEventService;
         _readAvailabilityService = readAvailabilityService;
         _timezoneConverter = timezoneConverter;
+        _availabilityProjection = availabilityProjection;
     }
 
     public async Task<ParticipantAvailabilityResult> Execute(string publicId, Guid participantId, string? viewerTimezone)
@@ -25,11 +31,17 @@ public class GetParticipantAvailability
         if (eventDto.Timezone is null)
             frame = "UTC";
 
+        string anchorTimezone = eventDto.Timezone ?? "UTC";
+
         return new ParticipantAvailabilityResult(
             dto.ParticipantId,
             dto.Name,
             frame,
-            dto.Ranges
+            _availabilityProjection
+                .Project(
+                    dto.Ranges.Select(r => (Start: r.Start, End: r.End)),
+                    eventDto.IntervalMinutes,
+                    anchorTimezone)
                 .Select(r => new AvailabilityRangeResult(
                     _timezoneConverter.ToWallClock(r.Start, frame),
                     _timezoneConverter.ToWallClock(r.End, frame)))

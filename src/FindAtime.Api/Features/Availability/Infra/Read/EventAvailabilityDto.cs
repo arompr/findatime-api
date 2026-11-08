@@ -1,4 +1,4 @@
-public record EventAvailabilityDto(string? EventTimezone, IReadOnlyList<ParticipantAvailabilityDto> Participants);
+public record EventAvailabilityDto(string? EventTimezone, int IntervalMinutes, IReadOnlyList<ParticipantAvailabilityDto> Participants);
 
 public record ParticipantAvailabilityDto(string ParticipantId, string Name, IReadOnlyList<AvailabilityRangeDto> Ranges);
 

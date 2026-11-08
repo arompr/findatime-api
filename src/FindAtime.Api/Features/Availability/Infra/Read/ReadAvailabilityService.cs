@@ -44,6 +44,8 @@ public class ReadAvailabilityService
             ? null
             : reader.GetString(timezoneOrdinal);
 
+        int intervalMinutes = reader.GetInt32(reader.GetOrdinal("interval_minutes"));
+
         await reader.NextResultAsync();
 
         var participants = new List<ParticipantAvailabilityDto>();
@@ -74,7 +76,7 @@ public class ReadAvailabilityService
             ));
         }
 
-        return new EventAvailabilityDto(eventTimezone, participants);
+        return new EventAvailabilityDto(eventTimezone, intervalMinutes, participants);
     }
 
     public async Task<ParticipantAvailabilityDto?> GetForParticipant(string publicId, Guid participantId)

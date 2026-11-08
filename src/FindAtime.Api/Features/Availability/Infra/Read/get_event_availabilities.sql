@@ -1,4 +1,4 @@
-SELECT timezone
+SELECT timezone, interval_minutes
 FROM events
 WHERE public_id = @publicId;
 

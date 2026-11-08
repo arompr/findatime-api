@@ -13,6 +13,9 @@
 #   4  QUERY  /events/{publicId}/availabilities
 #   5  QUERY  /events/{publicId}/participants/{participantId}/availability
 #   6  PUT    /events/{publicId}/participants/{participantId}/availability (snaps ranges to the 30-min grid)
+#   7  PUT    /events/{publicId}/params (organizer switches the interval to 60)
+#   8  QUERY  /events/{publicId}/participants/{participantId}/availability (projects onto the 60-min grid)
+#   9  QUERY  /events/{publicId}/availabilities (projects onto the 60-min grid)
 #
 # Static variables are defined in the first entry's [Options] and inherited by
 # the entries that follow. The first two entries set up the event and participant
@@ -70,19 +73,69 @@ QUERY {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availabilit
 HTTP 200
 
 # Replace one participant's availability (wall-clock, no UTC offset; the
-# misaligned 18:05-18:50 range is snapped start-down/end-up to 18:00-19:00)
+# misaligned 18:05-18:50 range is snapped start-down/end-up to 18:00-19:00).
+# 08:30-10:00 and 11:30-12:30 are aligned to the default 30-min grid; the next
+# entries switch the event to 60 minutes and prove how they are projected.
 PUT {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
 X-Guest-Id: {{participantGuestId}}
 {
   "timezone": "Europe/Berlin",
   "ranges": [
-    { "start": "2026-09-21T09:00:00", "end": "2026-09-21T10:00:00" },
-    { "start": "2026-09-21T14:00:00", "end": "2026-09-21T15:00:00" },
+    { "start": "2026-09-21T08:30:00", "end": "2026-09-21T10:00:00" },
+    { "start": "2026-09-21T11:30:00", "end": "2026-09-21T12:30:00" },
     { "start": "2026-09-21T18:05:00", "end": "2026-09-21T18:50:00" }
   ]
 }
 
 HTTP 200
 [Asserts]
+jsonpath "$.ranges[0].start" == "2026-09-21T08:30:00"
+jsonpath "$.ranges[0].end" == "2026-09-21T10:00:00"
+jsonpath "$.ranges[1].start" == "2026-09-21T11:30:00"
+jsonpath "$.ranges[1].end" == "2026-09-21T12:30:00"
 jsonpath "$.ranges[2].start" == "2026-09-21T18:00:00"
 jsonpath "$.ranges[2].end" == "2026-09-21T19:00:00"
+
+# The organizer switches the event to 1-hour slots
+PUT {{baseUrl}}/events/{{publicId}}/params
+X-Guest-Id: {{organizerGuestId}}
+{
+  "timezone": "Europe/Berlin",
+  "intervalMinutes": 60
+}
+
+HTTP 200
+[Asserts]
+jsonpath "$.intervalMinutes" == 60
+
+# Read one participant's availability on the 60-min grid: 08:30-10:00 becomes
+# 09:00-10:00, 11:30-12:30 covers no full hour and disappears, 18:00-19:00 is
+# already aligned
+QUERY {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
+{
+  "timezone": "Europe/Berlin"
+}
+
+HTTP 200
+[Asserts]
+jsonpath "$.ranges" count == 2
+jsonpath "$.ranges[0].start" == "2026-09-21T09:00:00"
+jsonpath "$.ranges[0].end" == "2026-09-21T10:00:00"
+jsonpath "$.ranges[1].start" == "2026-09-21T18:00:00"
+jsonpath "$.ranges[1].end" == "2026-09-21T19:00:00"
+
+# The event-wide read applies the same projection (participants ordered by name:
+# Alice, then Bob)
+QUERY {{baseUrl}}/events/{{publicId}}/availabilities
+{
+  "timezone": "Europe/Berlin"
+}
+
+HTTP 200
+[Asserts]
+jsonpath "$.timezone" == "Europe/Berlin"
+jsonpath "$.participants[1].name" == "Bob"
+jsonpath "$.participants[1].ranges" count == 2
+jsonpath "$.participants[1].ranges[0].start" == "2026-09-21T09:00:00"
+jsonpath "$.participants[1].ranges[1].start" == "2026-09-21T18:00:00"
+jsonpath "$.participants[0].ranges" count == 0

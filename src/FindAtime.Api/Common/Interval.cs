@@ -17,6 +17,16 @@ public static class Interval
 
     public static DateTime SnapStart(DateTime wallClock, int minutes)
     {
+        return Floor(wallClock, minutes);
+    }
+
+    public static DateTime SnapEnd(DateTime wallClock, int minutes)
+    {
+        return Ceil(wallClock, minutes);
+    }
+
+    public static DateTime Floor(DateTime wallClock, int minutes)
+    {
         Validate(minutes);
 
         long ticksPerInterval = (long)minutes * TimeSpan.TicksPerMinute;
@@ -28,7 +38,7 @@ public static class Interval
             DateTimeKind.Unspecified);
     }
 
-    public static DateTime SnapEnd(DateTime wallClock, int minutes)
+    public static DateTime Ceil(DateTime wallClock, int minutes)
     {
         Validate(minutes);
 
