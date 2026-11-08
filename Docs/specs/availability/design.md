@@ -3,12 +3,12 @@
 ## Overview
 
 Availability is a separate aggregate within the Scheduling bounded context. It
-references Participant by ParticipantId. Availability is stored as canonical UTC
-instants; wall-clock ↔ UTC conversion is centralized in a stateless
-`TimezoneConverter` singleton shared with the Events feature, grid snapping in
-the stateless `Common/Interval` helper that owns the event interval's allowed
-set, default, and floor/ceil arithmetic, and read-time grid projection in the
-stateless `Common/AvailabilityProjection` helper.
+references Participant by ParticipantId. Availability is exchanged and stored
+as UTC instants. All wall-clock math happens in the stateless
+`Common/AvailabilityProjection` helper, in the event's timezone: `SnapOutward`
+on write and `Project` on read. `Common/Interval` owns the event interval's
+allowed set, default, and floor/ceil arithmetic. `TimezoneConverter` only
+resolves and validates IANA ids; it is shared with the Events feature.
 
 ## Domain Model
 
@@ -20,57 +20,39 @@ stateless `Common/AvailabilityProjection` helper.
 
 Availability is a pure C# entity; the factory enforces the invariants on the
 canonical UTC instants. Ownership flows Availability → Participant → Event, so
-an availability range references only ParticipantId (no redundant EventId). The
-`TimezoneConverter` (`Resolve`/`ToUtc`/`ToWallClock`) is the single conversion
-point: `SetAvailability` converts wall-clock input to UTC before the factory,
-and the read use cases convert stored UTC back to wall-clock in the resolved
-frame.
+an availability range references only ParticipantId (no redundant EventId).
 
-Granularity is an event-level param, read from the event that `SetAvailability`
-already loads: `Event.Params.IntervalMinutes` (15, 30, or 60, default 30, owned
-by the Events feature). Before conversion, `SetAvailability` snaps each bound
-with `Interval.SnapStart`/`SnapEnd` — start floored down, end ceiled up on a grid
-anchored at midnight of the wall-clock date. Snapping is done in the submitter's
-wall-clock frame, not the UTC frame, because that is the frame the participant
-saw and because a non-hour-offset zone (e.g. `+05:30`) could otherwise never
-produce a UTC instant on an hour grid. The factory invariants and the `ToUtc`
-DST gap/ambiguous checks therefore run on the snapped values: a snapped range
-that is non-increasing or longer than 24 hours is rejected as
-`invalid_availability_range`, never clamped.
+Granularity and anchor are event-level params, read from the event that
+`SetAvailability` already loads: `Event.Params.IntervalMinutes` (15, 30, or 60,
+default 30) and `Event.Params.Timezone ?? "UTC"` (owned by the Events feature).
+Write and read use the same anchor rule, so a snapped write projects to itself.
 
-Writes are only one half of the grid. Reads re-express stored ranges on the
-interval the event has **now**, through `AvailabilityProjection`: the
-participant's ranges are merged into a union, then each block is snapped inward
-(`Interval.Ceil` on the start, `Interval.Floor` on the end) in a grid anchored at
-midnight in the event's timezone (UTC when the timezone option is off), and
-blocks with no full interval are dropped. Union-before-projection matters:
-adjacent half-hour rows that jointly cover an hour must produce that hour.
-Projection never writes, so an interval change leaves every row intact and
-switching back to a finer interval restores the earlier output. Because reads
-must not fail, the helper does its own lenient DST resolution (gap → end of the
-gap, repeated → inward-compatible instant) instead of the strict `ToUtc`, which
-stays reserved for submissions.
+### Why the server snaps in the event frame (008)
 
-Participant resolution is done through the `Event` aggregate: `Event` exposes
-`FindParticipant(ParticipantId)` and, for writes, is loaded with its
-participants via `EventRepository.GetByPublicId` (not a separate read query).
+Before 008 the API exchanged wall-clock datetimes plus a viewer timezone. Each
+side converted with its own tz database (server tzdata vs browser ICU), and
+writes snapped in the viewer's frame while reads projected in the event's.
+When the two databases disagreed (British Columbia's permanent UTC-7 from
+Nov 1 2026) blocks drifted an hour. Half-hour-offset viewers could also lose
+saved ranges on read. Now instants cross the wire unchanged, and all grid math
+uses the event's frame on the server, so a client converts only for display.
 
 ## API
 
-`PUT /events/{publicId}/participants/{participantId}/availability`
-
-The PUT operation replaces all availability ranges for the participant; the body
-supplies the participant's IANA `timezone` and wall-clock ranges (no offset).
+`PUT /events/{publicId}/participants/{participantId}/availability` replaces all
+availability ranges for the participant. The body is `{ ranges }` with
+offset-bearing ISO 8601 instants; `AvailabilityRestService.ParseInstant` rejects
+offset-less values with `InvalidAvailabilityRangeException` and normalizes to
+UTC.
 
 The calling participant is resolved via
 `GET /events/{publicId}/participant` (using the `X-Guest-Id` header).
 
-Reads are served via `QUERY /events/{publicId}/availabilities` (all) and
-`QUERY /events/{publicId}/participants/{participantId}/availability` (one). Both
-take an optional viewer `timezone` in the body and return wall-clock ranges in
-the resolved frame (viewer → event → UTC, forced to UTC when the event's
-timezone option is off) plus the frame label. The non-standard `QUERY` verb is
-registered via `MapMethods(..., [HttpMethods.Query], ...)`.
+Reads are plain `GET`s with no body: `GET /events/{publicId}/availabilities`
+(all) and `GET /events/{publicId}/participants/{participantId}/availability`
+(one). Range DTOs are `DateTimeOffset`, so the OpenAPI document emits
+`format: date-time` and the generated TypeScript client has SDK functions for
+every availability operation.
 
 ## Persistence
 
@@ -87,54 +69,51 @@ as check constraints (mirrored by the factory validation).
 `ON DELETE CASCADE`: a participant's ranges are removed with the participant, and
 so are an event's ranges when the event is deleted (see the Events design).
 
-`events.timezone` (the event's timezone option / fallback frame),
-`events.interval_minutes` (the event's calendar step, non-null, default 30), and
-`participants.timezone` (the participant's IANA timezone) all live on the events
-side; `participants.timezone` is captured at join/availability-submit and
-`events.timezone` is set by the organizer's params toggle. Availability adds no
-granularity column: the grid is read from the event at write time, so stored
-ranges keep the values they were written with and are never rewritten when the
-interval later changes; reads project them inward onto the interval current at
-read time. `availabilities` rows are `timestamp with time zone` and are always
-written as offset-0 UTC instants.
+`events.timezone` (the grid anchor), `events.interval_minutes` (the event's
+calendar step, non-null, default 30), and `participants.timezone` (the
+participant's IANA timezone, set at join only) live on the events side.
+Availability adds no granularity column: the grid is read from the event at
+write time, so stored ranges keep the values they were written with and are
+never rewritten when the interval later changes; reads project them inward onto
+the interval current at read time. `availabilities` rows are
+`timestamp with time zone`, and Npgsql requires offset-0 values, so every
+instant is passed through `ToUniversalTime()` before it reaches EF.
+
+Rows written before 008 were snapped in the submitter's frame. They need no
+migration: `Project` re-snaps them in the event frame on read.
 
 ## Validation
 
-- Start must precede end.
-- Duration must not exceed 24 hours (measured on the canonical UTC instants).
-- Both invariants above are checked on the **snapped** values: each submitted
-  wall-clock bound is first floored (start) or ceiled (end) onto the event's
-  interval grid in the submitter's timezone, and the snapped range is rejected as
-  `invalid_availability_range` if it is non-increasing or over 24 hours; it is
+- Start must precede end (checked before snapping and again by the factory).
+- Duration must not exceed 24 hours, checked on the **snapped** range; it is
   never clamped.
-- The participant's `timezone` is required and must be a known IANA id
-  (`invalid_timezone`); a range that is malformed, offset-bearing, ambiguous, or
-  nonexistent in that timezone is rejected as `invalid_availability_range`. The
-  ambiguity/gap check applies to the snapped bounds.
-- A viewer `timezone` supplied in a read body must be a known IANA id.
+- Bounds must be ISO 8601 instants with an explicit offset; a malformed or
+  offset-less value is `invalid_availability_range`.
 - Participant must belong to the specified event.
 - The `X-Guest-Id` header must match the participant's guest id.
 
 ## Application Flow
 
-Reads: API → `GetMyParticipant` / `GetEventAvailabilities` /
-`GetParticipantAvailability` → `ReadEventService` + `ReadAvailabilityService`
-(Dapper raw SQL) → PostgreSQL. The two availability reads resolve the viewer
-frame (viewer → event → UTC, forced to UTC when the option is off), project each
-participant's stored ranges with `AvailabilityProjection` using the event's
-current `interval_minutes` and an anchor of `event timezone ?? "UTC"`, then
-convert each projected instant via `TimezoneConverter.ToWallClock`.
-`GetEventAvailabilities` takes the interval from its own SQL;
-`GetParticipantAvailability` already has it on `EventDto`.
+Reads: API → `GetEventAvailabilities` / `GetParticipantAvailability` →
+`ReadEventService` + `ReadAvailabilityService` (Dapper raw SQL) → PostgreSQL.
+Both project each participant's stored ranges with
+`AvailabilityProjection.Project` using the event's current `interval_minutes`
+and an anchor of `event timezone ?? "UTC"`, and return the projected instants as
+UTC `DateTimeOffset`s. `GetEventAvailabilities` takes the interval from its own
+SQL; `GetParticipantAvailability` already has it on `EventDto`.
 
 Writes: API → `SetAvailability` → `EventRepository.GetByPublicId` (loads the
 `Event` aggregate with participants) + `AvailabilityRepository` (EF Core) →
-PostgreSQL. `SetAvailability` resolves and stores the participant's timezone,
-snaps each wall-clock bound with `Interval.SnapStart`/`SnapEnd` using the loaded
-event's `Params.IntervalMinutes` (no extra query), converts the snapped bounds to
-UTC via `TimezoneConverter.ToUtc`, and returns the ranges converted back via
-`ToWallClock` — so the response echoes the snapped values with no separate code
-path.
+PostgreSQL. `SetAvailability` checks end > start, snaps each range with
+`AvailabilityProjection.SnapOutward(range, interval, anchor)`, builds the
+entities through `AvailabilityFactory`, and returns the stored instants. It does
+not touch the participant's timezone.
+
+`SnapOutward` converts each bound to anchor wall clock, applies
+`Interval.Floor` (start) / `Interval.Ceil` (end), and converts back with the
+same lenient DST resolution `Project` uses. On a repeated hour it picks the
+interpretation that keeps the range from shrinking: the latest one at or before
+the original start, and the earliest one at or after the original end.
 
 The replace semantics live in the use case, not the repository:
 `SetAvailability` resolves the participant via `Event.FindParticipant`,
@@ -146,14 +125,18 @@ persistence ops only; atomicity comes from a single `SaveChanges` commit in
 ## Testing
 
 - Domain validation → unit tests
-- Timezone conversion (resolve, DST gap/ambiguity, wall-clock round-trip) → unit tests
-- Grid snapping arithmetic (floor/ceil, exact boundaries, cross-midnight) → unit tests, no DI
-- Inward read projection (union, short ranges, event-frame anchoring, DST) → unit tests, no DI
-- SetAvailability / read use cases → integration tests, including outward snap
-  and echo, wall-clock-frame snapping for a non-hour-offset submitter, rejection
-  of a snapped range over 24 hours, projection after an interval change in both
-  directions, viewer-independent slots, and participants whose ranges all
-  project away
-- HTTP endpoints → integration tests (Testcontainers PostgreSQL); the
-  `availability.hurl` workflow proves the interval switch and projection at the
-  wire level
+- Timezone id resolution → unit tests
+- Grid floor/ceil arithmetic (exact boundaries, cross-midnight) → unit tests, no DI
+- Outward write snapping (event-frame anchoring, half-hour-offset input, DST
+  change, UTC anchor, offset normalization) and inward read projection (union,
+  short ranges, DST) → `AvailabilityProjectionTests`, no DI
+- Instant parsing (offset required, UTC normalization) → `ParseInstantTests`
+- OpenAPI shape (GET reads, `date-time` ranges, no timezone field) →
+  `OpenApiDocumentTests`
+- SetAvailability / read use cases → integration tests, including aligned
+  pass-through, outward snap and echo, the half-hour-offset round trip, the
+  legacy UTC anchor, participant timezone unchanged by a save, rejection of a
+  snapped range over 24 hours, projection after an interval change in both
+  directions, and participants whose ranges all project away
+- Wire level → the `availability.hurl` workflow (instant round trip, offset-less
+  400, interval switch and projection)

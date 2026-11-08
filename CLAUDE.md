@@ -45,10 +45,13 @@ notes win.
 ## Cross-cutting code in `Common/`
 
 Time handling is shared by both features and is the subtlest code in the repo:
-`Interval` (grid snapping: `Floor`/`Ceil`/`SnapStart`/`SnapEnd`),
-`TimezoneConverter`, and `AvailabilityProjection`. `AvailabilityProjection`
-merges participants' ranges into a union and projects it onto the event's
-interval grid in the event's anchor timezone. It must handle DST gaps and
+`Interval` (grid arithmetic: `Floor`/`Ceil`), `TimezoneConverter` (IANA id
+resolution only), and `AvailabilityProjection`. All availability wall-clock
+math lives in `AvailabilityProjection`, in the event's anchor timezone
+(`Params.Timezone ?? "UTC"`): `SnapOutward` widens a submitted instant range on
+write, and `Project` merges a participant's ranges into a union and narrows it
+onto the current grid on read. The API exchanges UTC instants only, so nothing
+converts to a viewer's wall clock. Both methods must handle DST gaps and
 ambiguous times without throwing. Read `Docs/specs/availability/design.md`
 before changing any of these.
 

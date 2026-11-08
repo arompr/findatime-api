@@ -37,6 +37,28 @@ public sealed class AvailabilityProjection
         return projected;
     }
 
+    /// <summary>
+    /// Widens one instant range outward to the slot grid of the anchor timezone:
+    /// the start is floored and the end is ceiled on the anchor's wall clock.
+    /// Used on write so no selected time is lost. Returns UTC instants.
+    /// </summary>
+    public (DateTimeOffset Start, DateTimeOffset End) SnapOutward(
+        (DateTimeOffset Start, DateTimeOffset End) range,
+        int intervalMinutes,
+        string anchorTimezone)
+    {
+        Interval.Validate(intervalMinutes);
+
+        TimeZoneInfo zone = _timezoneConverter.Resolve(anchorTimezone);
+
+        DateTime snappedStart = Interval.Floor(ToWallClock(zone, range.Start), intervalMinutes);
+        DateTime snappedEnd = Interval.Ceil(ToWallClock(zone, range.End), intervalMinutes);
+
+        return (
+            ToInstant(zone, snappedStart, null, range.Start).ToUniversalTime(),
+            ToInstant(zone, snappedEnd, range.End, null).ToUniversalTime());
+    }
+
     private static IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> Merge(
         IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> ranges)
     {

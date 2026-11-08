@@ -49,11 +49,12 @@ wholesale; `Participant.SetTimezone` records the participant's timezone.
 the system — `Event.Create` passes `Interval.DefaultMinutes`, and the params use
 case passes the caller's value and surfaces the failure. `Common/Interval` is
 the single owner of the allowed set (`15`/`30`/`60`), the default (`30`), and
-the grid: `SnapStart` floors a wall-clock bound down to the grid and `SnapEnd`
-ceils it up, both on a grid anchored at `00:00` of the wall-clock date and
-computed in integer ticks (idempotent on an exact boundary, carrying across
+the grid: `Floor` moves a wall-clock time down to the grid and `Ceil` moves it
+up, both on a grid anchored at `00:00` of the wall-clock date and computed in
+integer ticks (idempotent on an exact boundary, carrying across
 midnight). It is a static helper, so it needs no DI registration and is used by
-both the events domain and the availability application layer.
+both the events domain and `Common/AvailabilityProjection`, which applies it in
+the event's timezone for availability writes and reads.
 
 `Event` has no deletion method: deleting the aggregate is a persistence
 operation, and the only rule involved — organizer-only — is enforced in the
@@ -134,8 +135,8 @@ default of `30`, so pre-existing events read back as 30 with no backfill and no
 rewriting of stored availability; the DbContext maps
 `.HasDefaultValue(Interval.DefaultMinutes)` so the database default and the
 domain default cannot drift. `participants.timezone` (nullable text) holds the
-participant's IANA timezone, captured at join and refreshed on availability
-submit.
+participant's IANA timezone, captured at join only; availability writes do not
+change it.
 
 `EventRepository.Delete` removes the loaded aggregate with EF Core
 (`DbContext.Events.Remove` + `SaveChangesAsync`) and relies on the schema's two

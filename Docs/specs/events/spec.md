@@ -37,7 +37,7 @@ An event has:
 - PublicId (shareable 12-character string)
 - Name
 - OrganizerParticipantId (a participant id)
-- Timezone (optional; null = timezone option off, non-null IANA id = option on and the fallback display frame)
+- Timezone (optional; null = timezone option off, non-null IANA id = the frame of the slot grid and day window; null anchors them in UTC)
 - IntervalMinutes (calendar step granularity; 15, 30, or 60 minutes; 30 on creation)
 - PasscodeHash (optional; hash + salt)
 - Participants (collection)
@@ -77,8 +77,8 @@ not join is a no-op; the organizer cannot leave.
 
 An event's params — the timezone option and the interval — can be replaced in
 full by the organizer. The body always carries both: a non-null IANA timezone
-enables timezone-aware display and sets the fallback frame, null disables it
-(legacy); the interval is the event's calendar step and must be 15, 30, or 60
+anchors the event's slot grid and day window in that timezone, null anchors
+them in UTC (legacy); the interval is the event's calendar step and must be 15, 30, or 60
 minutes. The interval is validated before the timezone, and a value outside the
 allowed set is rejected as `invalid_interval`. The operation is idempotent,
 organizer-only, and never touches stored availability.
@@ -163,6 +163,6 @@ deleted.
 
 Every read of a deleted event misses it: `GET /events/{publicId}` and
 `GET /events/{publicId}/participant` return 404 `event_not_found`, both
-availability reads (`QUERY /events/{publicId}/availabilities` and
-`QUERY /events/{publicId}/participants/{participantId}/availability`) return 404
+availability reads (`GET /events/{publicId}/availabilities` and
+`GET /events/{publicId}/participants/{participantId}/availability`) return 404
 `event_not_found`, and the event no longer appears in `GET /events?guestId=`.

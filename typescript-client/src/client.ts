@@ -2,7 +2,9 @@ import {
   createEvent,
   deleteEvent,
   getEvent,
+  getEventAvailabilities,
   getMyParticipant,
+  getParticipantAvailability,
   health,
   joinEvent,
   leaveEvent,
@@ -10,7 +12,6 @@ import {
   setAvailability,
   updateEventParams,
 } from "./generated/sdk.gen";
-import { getEventAvailabilities, getParticipantAvailability } from "./query";
 
 export { client } from "./generated/client.gen";
 

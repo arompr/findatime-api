@@ -70,8 +70,8 @@ WHEN I omit or malform my guest id THEN THE SYSTEM SHALL reject the request
 
 **Acceptance Criteria:**
 WHEN I create an event THEN THE SYSTEM SHALL leave the timezone option off by default
-WHEN I enable or change the timezone option THEN THE SYSTEM SHALL record the IANA timezone and render availability in viewers' timezones
-WHEN I disable the timezone option THEN THE SYSTEM SHALL fall back to legacy (no-conversion) behavior
+WHEN I enable or change the timezone option THEN THE SYSTEM SHALL record the IANA timezone and use it as the frame of the event's slot grid and day window
+WHEN I disable the timezone option THEN THE SYSTEM SHALL anchor the event's slot grid and day window in UTC (legacy behavior)
 WHEN a non-organizer tries to change the option THEN THE SYSTEM SHALL respond forbidden
 WHEN I supply an unknown timezone THEN THE SYSTEM SHALL reject the request
 

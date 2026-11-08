@@ -44,12 +44,12 @@ public class DeleteEventTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
         var joined = await _joinEvent.Execute(created.PublicId, created.Passcode, FriendGuestId, "Bob", "UTC");
 
-        var start = new DateTime(2026, 9, 19, 9, 0, 0);
-        var end = new DateTime(2026, 9, 19, 10, 0, 0);
+        var start = new DateTimeOffset(2026, 9, 19, 9, 0, 0, TimeSpan.Zero);
+        var end = new DateTimeOffset(2026, 9, 19, 10, 0, 0, TimeSpan.Zero);
 
         await _setAvailability.Execute(
-            created.PublicId, Guid.Parse(joined.ParticipantId), Guid.Parse(FriendGuestId), "UTC",
-            [new AvailabilityRangeResult(start, end)]);
+            created.PublicId, Guid.Parse(joined.ParticipantId), Guid.Parse(FriendGuestId),
+            [(start, end)]);
 
         await _deleteEvent.Execute(created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId));
 

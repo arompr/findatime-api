@@ -49,9 +49,8 @@ API listens on <http://localhost:5263> (OpenAPI at /openapi/v1.json). Verify:
 
 Each feature's REST surface has a hand-maintained, runnable scratch file under
 `src/FindAtime.Api/Features/<Feature>/Api/` (e.g. `events.hurl`,
-`availability.hurl`). They use [Hurl](https://hurl.dev) because the availability
-read endpoints use the non-standard `QUERY` verb, which common `.http` clients
-cannot send.
+`availability.hurl`). They use [Hurl](https://hurl.dev), which can chain
+requests and capture ids across them.
 
 Install Hurl with your package manager or any method from the
 [installation guide](https://hurl.dev/docs/installation.html) — for example
@@ -80,7 +79,7 @@ the last response body (pretty-printed when stdout is a terminal):
 
 ```
 hurl --to-entry 3 src/FindAtime.Api/Features/Events/Api/events.hurl      # GET /events/{publicId}
-hurl --to-entry 4 src/FindAtime.Api/Features/Availability/Api/availability.hurl  # QUERY /availabilities
+hurl --to-entry 5 src/FindAtime.Api/Features/Availability/Api/availability.hurl  # GET /availabilities
 ```
 
 `--from-entry N` alone cannot be used for id-dependent entries, because their ids

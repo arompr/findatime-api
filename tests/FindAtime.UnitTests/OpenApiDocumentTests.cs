@@ -22,27 +22,48 @@ public class OpenApiDocumentTests : IDisposable
         Assert.StartsWith("3.2", openApi);
     }
 
-    [Fact]
-    public void EventAvailabilities_ShouldHaveQueryOperation()
+    [Theory]
+    [InlineData("/events/{publicId}/availabilities")]
+    [InlineData("/events/{publicId}/participants/{participantId}/availability")]
+    public void AvailabilityReads_ShouldBeGetOperationsWithoutQuery(string path)
     {
-        var hasQuery = _document.RootElement
-            .GetProperty("paths")
-            .GetProperty("/events/{publicId}/availabilities")
-            .TryGetProperty("query", out _);
+        var item = PathItem(path);
 
-        Assert.True(hasQuery);
+        Assert.True(item.TryGetProperty("get", out var get));
+        Assert.False(get.TryGetProperty("requestBody", out _));
+        Assert.False(item.TryGetProperty("query", out _));
     }
 
-    [Fact]
-    public void ParticipantAvailability_ShouldHaveQueryOperation()
+    [Theory]
+    [InlineData("start")]
+    [InlineData("end")]
+    public void AvailabilityRangeResponse_ShouldUseDateTimeFormat(string property)
     {
-        var hasQuery = _document.RootElement
-            .GetProperty("paths")
-            .GetProperty("/events/{publicId}/participants/{participantId}/availability")
-            .TryGetProperty("query", out _);
+        var format = Schema("AvailabilityRangeResponse")
+            .GetProperty("properties")
+            .GetProperty(property)
+            .GetProperty("format")
+            .GetString();
 
-        Assert.True(hasQuery);
+        Assert.Equal("date-time", format);
     }
+
+    [Theory]
+    [InlineData("GetEventAvailabilitiesResponse")]
+    [InlineData("ParticipantAvailabilityResponse")]
+    [InlineData("GetParticipantAvailabilityResponse")]
+    [InlineData("SetAvailabilityRequest")]
+    [InlineData("SetAvailabilityResponse")]
+    public void AvailabilitySchemas_ShouldNotHaveTimezone(string schema)
+    {
+        Assert.False(Schema(schema).GetProperty("properties").TryGetProperty("timezone", out _));
+    }
+
+    private JsonElement PathItem(string path) =>
+        _document.RootElement.GetProperty("paths").GetProperty(path);
+
+    private JsonElement Schema(string name) =>
+        _document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty(name);
 
     public void Dispose()
     {

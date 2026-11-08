@@ -4,8 +4,9 @@
 
 Availability represents the time ranges during which a participant is available
 for an event. An organizer reads availability to choose a slot that works for
-everyone. Ranges are stored as canonical UTC instants and, when the event's
-timezone option is on, rendered as wall-clock times in the viewer's timezone.
+everyone. Ranges are exchanged and stored as UTC instants. The server snaps them
+to the event's slot grid in the event's timezone; clients convert instants to
+local time only for display.
 
 ## Invariants
 
@@ -13,11 +14,18 @@ timezone option is on, rendered as wall-clock times in the viewer's timezone.
 - A participant can have zero or more availability ranges.
 - Ranges must have a start before their end.
 - Ranges must not exceed 24 hours in duration.
-- Each range is stored as a canonical UTC start/end pair, independent of the submitter's timezone.
-- Ranges are submitted as wall-clock times in the participant's timezone and read as wall-clock times in the resolved viewer frame.
+- Each range is stored as a canonical UTC start/end pair.
+- Ranges are submitted and returned as ISO 8601 instants with an explicit UTC
+  offset. Responses always use offset 0 (`+00:00`).
 - Clearing a participant's availability is done by replacing it with no ranges.
-- Submitted wall-clock bounds are snapped outward onto the event's interval grid (15, 30, or 60 minutes) in the submitter's timezone before UTC conversion: the start moves down to the previous grid boundary, the end up to the next one.
-- Stored ranges are never rewritten when the event's interval changes; reads project them inward onto the current interval grid instead (see Behavior → Projection onto the current interval).
+- Submitted bounds are snapped outward onto the event's interval grid (15, 30, or
+  60 minutes) in the event's timezone (UTC when the event has none): the start
+  moves down to the previous grid boundary, the end up to the next one.
+- Stored ranges are never rewritten when the event's interval changes; reads
+  project them inward onto the current interval grid instead (see Behavior →
+  Projection onto the current interval).
+- Writing availability never changes the participant's timezone. It is recorded
+  once, at join.
 
 ## State
 
@@ -26,39 +34,39 @@ An availability range has:
 - Start (canonical UTC instant)
 - End (canonical UTC instant)
 
-A participant has a timezone (IANA id), captured when they join or submit
-availability.
+A participant has a timezone (IANA id), captured when they join. Availability
+does not use it.
 
-The event an availability belongs to carries an interval — 15, 30, or 60
-minutes, 30 by default — which is the calendar step: submitted bounds are
-snapped outward to it and reads project stored ranges inward onto it. It is an
-event-level setting, not a per-participant one.
+The event an availability belongs to carries an interval (15, 30, or 60 minutes,
+30 by default) and an optional timezone. Together they define the slot grid:
+boundaries every `interval` minutes from midnight in the event's timezone, or
+from midnight UTC for legacy events without a timezone. Submitted bounds are
+snapped outward to that grid and reads project stored ranges inward onto it.
 
 ## Behavior
 
 ### Replace
 
 Replacing a participant's availability removes all existing ranges and stores
-the supplied ranges. The request supplies the participant's IANA timezone and
-the ranges as wall-clock local times. Each bound is first snapped onto the
-event's interval grid in the submitter's timezone — the start floored down to the
-previous grid boundary, the end ceiled up to the next one — and the snapped
-wall-clock values are then converted to canonical UTC instants before storage. A
-bound already on the grid is unchanged. The snapped values are what is stored,
-and the response returns them converted back to the participant's wall-clock
-times plus the timezone label, so the caller sees exactly what was saved.
+the supplied ranges. The request supplies only the ranges, as instants. Each
+range is snapped outward onto the event's grid in the event's timezone: the
+start is floored to the previous boundary and the end ceiled to the next one. A
+bound already on the grid is unchanged. The snapped instants, normalized to UTC,
+are what is stored, and the response returns them, so the caller sees exactly
+what was saved.
 
-Snapping happens in the submitter's wall-clock frame, not in the UTC frame: the
-wall clock is the frame the participant actually saw, and a submitter in a
-non-hour-offset timezone (e.g. `+05:30`) can keep their own grid even though the
-resulting UTC instants fall off it.
+Snapping happens in the event's frame, the same frame reads project in, so a
+saved range is never trimmed or dropped by the next read. A viewer in a
+half-hour-offset zone on a 60-minute New York event who submits 19:00–20:00 IST
+(13:30–14:30Z) gets 09:00–11:00 New York time (13:00–15:00Z) in summer: outward
+snapping only widens.
 
-The end-after-start and 24-hour-maximum invariants are applied to the snapped
-values. Outward rounding only widens a range, so it can never turn a valid range
-into a zero-duration one, but it can push a range that sat at the 24-hour limit
-past it; such a range is rejected as `invalid_availability_range`, never clamped
-back to the grid or to the limit. The DST gap/ambiguous rejection applies to the
-snapped bounds, exactly as it does to any other wall-clock bound.
+The end-after-start check runs on the submitted range, and the factory's
+end-after-start and 24-hour checks run again on the snapped range. Outward
+rounding can push a range that sat at the 24-hour limit past it; such a range
+is rejected as `invalid_availability_range`, never clamped. Instants have no DST
+gaps or ambiguities, so a write never fails for DST reasons. Snapping resolves a
+boundary that falls in a gap or on a repeated hour outward.
 
 ### Projection onto the current interval
 
@@ -70,9 +78,8 @@ that contains no full interval is omitted from the result; it is never widened
 or clamped. Bounds already on the grid are unchanged.
 
 The grid is anchored at midnight in the event's timezone, or at midnight UTC
-when the timezone option is off. The viewer's timezone affects only the
-wall-clock rendering, never the projected instants, so every reader sees the
-same slots.
+when the event has no timezone. Reads have no viewer input, so every reader gets
+the same instants.
 
 Projection is a read-time view: stored rows are never modified when the interval
 changes, so switching back to a finer interval restores the earlier output. A
@@ -84,13 +91,9 @@ interpretation.
 ### Query
 
 Availability can be retrieved for all participants of an event, or for a single
-participant. The request supplies an optional viewer timezone; when the event's
-timezone option is on, each stored UTC range is rendered as wall-clock in the
-viewer's frame (viewer timezone → event timezone → UTC) along with the label.
-When the option is off, times are rendered in UTC with the label `UTC` (legacy,
-no conversion). Reads project the stored ranges onto the event's current
-interval (see Projection onto the current interval); the responses carry no
-interval field.
+participant. Reads take no body and no timezone. They return each participant's
+ranges projected onto the event's current interval as UTC instants. The
+responses carry no interval or timezone field.
 
 ## API
 
@@ -101,35 +104,32 @@ Returns the participant id and name for the calling guest. Requires an
 `X-Guest-Id` header.
 
 ### List event availability
-`QUERY /events/{publicId}/availabilities`
+`GET /events/{publicId}/availabilities`
 
-Body carries an optional `{ timezone }` (the viewer's IANA frame; an unknown id
-is rejected with 400 `invalid_timezone`). Returns the resolved timezone label
-and every participant with their ranges projected onto the event's current
-interval and rendered as wall-clock times in that frame. Participants whose
-ranges all project away are listed with an empty range list. Because it reads
-with a body, the operation uses the `QUERY` verb on its original path.
+Returns `{ participants: [{ participantId, name, ranges: [{ start, end }] }] }`.
+Every participant is listed, ordered by name, with their ranges projected onto
+the event's current interval as UTC instants. Participants whose ranges all
+project away are listed with an empty range list. 404 when the event does not
+exist.
 
 ### Read one participant's availability
-`QUERY /events/{publicId}/participants/{participantId}/availability`
+`GET /events/{publicId}/participants/{participantId}/availability`
 
-Body carries an optional `{ timezone }` viewer frame, validated and applied as
-above. Returns the participant's name, the resolved timezone label, and their
-ranges projected onto the event's current interval and rendered as wall-clock
-times.
+Returns `{ participantId, name, ranges }`, with ranges projected as above. 400
+when `participantId` is not a uuid; 404 when the event or participant does not
+exist or the participant belongs to another event.
 
 ### Replace participant availability
 `PUT /events/{publicId}/participants/{participantId}/availability`
 
-The request represents the participant's complete desired availability. Body
-carries the participant's IANA `timezone` and `ranges` as `{ start, end }`
-wall-clock strings without offset; 400 `timezone is required` when blank and 400
-`invalid_timezone` for an unknown id. Each bound is snapped onto the event's
-interval grid in the supplied timezone before conversion, and the ranges returned
-are the snapped ones (reads later project them onto the interval current at read
-time); 400 `invalid_availability_range` for a malformed or
-offset-bearing bound, a wall-clock bound that is ambiguous or nonexistent in the
-supplied timezone, or a snapped range whose end is not after its start or whose
-duration exceeds 24 hours. Returns the participant id, name, timezone label, and
-the ranges as wall-clock times. Requires an `X-Guest-Id` header that must match
-the participant's guest id.
+The request represents the participant's complete desired availability. The body
+is `{ ranges: [{ start, end }] }`, where each bound is an ISO 8601 instant with
+an explicit offset (`Z` or `±hh:mm`). Each range is snapped outward onto the
+event's interval grid in the event's timezone. The response is
+`{ participantId, name, ranges }` with the stored, snapped ranges as UTC
+instants. Reads later project them onto the interval current at read time.
+
+400 `invalid_availability_range` when a bound is malformed or has no offset
+(e.g. `2026-11-03T14:00:00`), when a range's end is not after its start, or when
+a snapped range exceeds 24 hours. Requires an `X-Guest-Id` header that must
+match the participant's guest id (403 otherwise).

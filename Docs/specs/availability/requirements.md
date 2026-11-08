@@ -3,9 +3,9 @@
 Availability lets participants mark the times they are free on an event's
 calendar, and lets organizers view everyone's availability so they can pick a
 slot that works for all. It replaces the localStorage-only prototype with
-server-backed storage. Availability is stored as canonical UTC instants but
-entered as wall-clock times in each participant's own timezone and rendered in
-the viewer's timezone when the event's timezone option is on.
+server-backed storage. Availability is exchanged and stored as UTC instants,
+aligned by the server to the event's slot grid in the event's timezone. Clients
+convert instants to local time only for display.
 
 ## User Stories
 
@@ -16,14 +16,14 @@ the viewer's timezone when the event's timezone option is on.
 
 **Acceptance Criteria:**
 WHEN I submit my availability ranges THEN THE SYSTEM SHALL store them and return my saved availability
-WHEN I submit my availability THEN THE SYSTEM SHALL require my IANA timezone and interpret the ranges I submit as wall-clock local times in it
-WHEN I submit a range that does not line up with the event's interval (15, 30, or 60 minutes) THEN THE SYSTEM SHALL widen it outward to the nearest grid boundaries in my timezone and return the widened times
+WHEN I submit my availability THEN THE SYSTEM SHALL accept the ranges as ISO 8601 instants with an explicit UTC offset
+WHEN I submit a range that does not line up with the event's interval (15, 30, or 60 minutes) THEN THE SYSTEM SHALL widen it outward to the nearest grid boundaries in the event's timezone and return the widened instants
+WHEN I submit my availability THEN THE SYSTEM SHALL NOT change the timezone recorded when I joined
 WHEN the organizer changes the event's interval THEN THE SYSTEM SHALL leave the ranges I already submitted exactly as they were stored, and reads SHALL project them inward onto the new interval grid
 WHEN I submit an empty list of ranges THEN THE SYSTEM SHALL clear my previous availability
 WHEN I submit a range whose end is not after its start THEN THE SYSTEM SHALL reject the request with an error
 WHEN I submit a range longer than 24 hours THEN THE SYSTEM SHALL reject the request with an error
-WHEN I submit a range that is ambiguous or nonexistent in my timezone THEN THE SYSTEM SHALL reject the request with an error
-WHEN I submit an unknown timezone THEN THE SYSTEM SHALL reject the request with an error
+WHEN I submit a bound without a UTC offset THEN THE SYSTEM SHALL reject the request with an error
 
 ### US-002: View everyone's availability
 **As an** organizer
@@ -34,9 +34,8 @@ WHEN I submit an unknown timezone THEN THE SYSTEM SHALL reject the request with 
 WHEN I request an event's availability THEN THE SYSTEM SHALL return every participant and their ranges
 WHEN I request an event's availability THEN THE SYSTEM SHALL project each participant's ranges inward onto the event's current interval grid, anchored in the event's timezone
 WHEN a stored range contains no full interval THEN THE SYSTEM SHALL omit it from that participant's ranges rather than widening or shrinking it to a partial slot
-WHEN I request an event's availability THEN THE SYSTEM SHALL render each range as wall-clock times in my timezone together with the timezone label
-WHEN my timezone is not supplied THEN THE SYSTEM SHALL fall back to the event's timezone, then to UTC
-WHEN the event's timezone option is off THEN THE SYSTEM SHALL return the raw UTC times with the label UTC
+WHEN I request an event's availability THEN THE SYSTEM SHALL return each range as UTC instants, identical for every viewer
+WHEN the event has no timezone THEN THE SYSTEM SHALL anchor the grid at midnight UTC
 WHEN no one has joined the event THEN THE SYSTEM SHALL return an empty participant list
 
 ### US-003: View one participant's availability
@@ -46,7 +45,7 @@ WHEN no one has joined the event THEN THE SYSTEM SHALL return an empty participa
 
 **Acceptance Criteria:**
 WHEN I request a participant's availability for an event they belong to THEN THE SYSTEM SHALL return their ranges
-WHEN I request a participant's availability THEN THE SYSTEM SHALL render their ranges in the resolved viewer timezone and return the label
+WHEN I request a participant's availability THEN THE SYSTEM SHALL return their ranges as UTC instants
 WHEN the participant does not belong to that event THEN THE SYSTEM SHALL respond not found
 
 ## Functional Requirements
@@ -63,7 +62,7 @@ WHEN the guest id header is missing or malformed THEN THE SYSTEM SHALL respond b
 **Priority:** P0
 **Persona:** participant
 
-WHEN a participant submits their availability THEN THE SYSTEM SHALL require their IANA timezone, interpret the ranges as wall-clock times in it, snap each bound outward to the event's interval grid, and store each snapped range as canonical UTC instants, replacing all their existing ranges
+WHEN a participant submits their availability as UTC instants THEN THE SYSTEM SHALL snap each range outward to the event's interval grid in the event's timezone (UTC when it has none) and store the snapped ranges as canonical UTC instants, replacing all their existing ranges
 WHEN the requester's guest id does not match the participant THEN THE SYSTEM SHALL respond forbidden
 
 ### FR-003: List availability for an event
@@ -78,14 +77,13 @@ WHEN an event's availability is requested THEN THE SYSTEM SHALL return a flat li
 
 WHEN a specific participant's availability is requested THEN THE SYSTEM SHALL return that participant's ranges, provided they belong to the event
 
-### FR-005: Timezone-aware rendering
+### FR-005: Instant exchange
 **Priority:** P0
-**Persona:** organizer
+**Persona:** participant, organizer
 
-WHEN availability is read THEN THE SYSTEM SHALL render each stored UTC range as
-wall-clock times in the viewer's timezone and return the timezone label; the
-frame resolves viewer → event → UTC, and is forced to UTC when the event's
-timezone option is off.
+WHEN availability is read or written THEN THE SYSTEM SHALL exchange ranges as
+ISO 8601 instants with an explicit offset, answer in UTC, and carry no timezone
+field; wall-clock conversion for display is the client's job.
 
 ### FR-006: Projection onto the current interval
 **Priority:** P0
@@ -94,9 +92,9 @@ timezone option is off.
 WHEN availability is read THEN THE SYSTEM SHALL merge each participant's stored
 ranges into a union and project that union inward onto the event's current
 interval grid, anchored at midnight in the event's timezone (UTC when the
-timezone option is off), omitting blocks that contain no full interval.
-Projection SHALL NOT modify stored rows, and the viewer's timezone SHALL NOT
-change the projected instants.
+event has no timezone), omitting blocks that contain no full interval.
+Projection SHALL NOT modify stored rows, and every viewer SHALL receive the same
+projected instants.
 
 ## Non-Functional Requirements
 
@@ -105,9 +103,10 @@ The only access control is the shareable public id plus the per-browser guest id
 there is no real authentication in this MVP.
 
 ### NFR-002: Timezone transparency
-The backend owns all timezone conversion. Clients submit wall-clock times with
-their timezone and render the wall-clock times and label they receive without
-converting; every range identifies its absolute start and end unambiguously.
+The backend owns all grid arithmetic, in the event's timezone. Instants cross
+the wire unchanged, so a client whose tz database differs from the server's can
+mislabel times but never misplaces a range relative to the event or to other
+participants.
 
 ## Out of Scope
 

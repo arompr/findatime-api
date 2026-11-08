@@ -3,27 +3,26 @@ public class SetAvailability
     private EventRepository _eventRepository;
     private AvailabilityFactory _availabilityFactory;
     private AvailabilityRepository _availabilityRepository;
-    private TimezoneConverter _timezoneConverter;
+    private AvailabilityProjection _availabilityProjection;
 
     public SetAvailability(
         EventRepository eventRepository,
         AvailabilityFactory availabilityFactory,
         AvailabilityRepository availabilityRepository,
-        TimezoneConverter timezoneConverter
+        AvailabilityProjection availabilityProjection
     )
     {
         _eventRepository = eventRepository;
         _availabilityFactory = availabilityFactory;
         _availabilityRepository = availabilityRepository;
-        _timezoneConverter = timezoneConverter;
+        _availabilityProjection = availabilityProjection;
     }
 
     public async Task<SetAvailabilityResult> Execute(
         string publicId,
         Guid participantId,
         Guid guestId,
-        string timezone,
-        IReadOnlyList<AvailabilityRangeResult> ranges
+        IReadOnlyList<(DateTimeOffset Start, DateTimeOffset End)> ranges
     )
     {
         Event? domainEvent = await _eventRepository.GetByPublicId(publicId);
@@ -31,6 +30,7 @@ public class SetAvailability
             throw new EventNotFoundException(publicId);
 
         int intervalMinutes = domainEvent.Params.IntervalMinutes;
+        string anchorTimezone = domainEvent.Params.Timezone ?? "UTC";
 
         ParticipantId pid = ParticipantId.FromString(participantId.ToString());
 
@@ -42,14 +42,18 @@ public class SetAvailability
         if (participant.GuestId != requestGuestId)
             throw new ForbiddenException($"Guest id '{guestId}' does not match participant '{participantId}'.");
 
-        _timezoneConverter.Resolve(timezone);
-        participant.SetTimezone(timezone);
-
         List<Availability> availabilities = ranges
-            .Select(r => _availabilityFactory.Create(
-                pid,
-                _timezoneConverter.ToUtc(Interval.SnapStart(r.Start, intervalMinutes), timezone),
-                _timezoneConverter.ToUtc(Interval.SnapEnd(r.End, intervalMinutes), timezone)))
+            .Select(r =>
+            {
+                if (r.End <= r.Start)
+                    throw new InvalidAvailabilityRangeException("Availability range must end after it starts.");
+
+                var snapped = _availabilityProjection.SnapOutward(r, intervalMinutes, anchorTimezone);
+                return _availabilityFactory.Create(
+                    pid,
+                    snapped.Start.ToUniversalTime(),
+                    snapped.End.ToUniversalTime());
+            })
             .ToList();
 
         await _availabilityRepository.DeleteForParticipant(pid);
@@ -58,11 +62,8 @@ public class SetAvailability
         return new SetAvailabilityResult(
             participant.ParticipantId.Value,
             participant.Name,
-            timezone,
             availabilities
-                .Select(a => new AvailabilityRangeResult(
-                    _timezoneConverter.ToWallClock(a.Start, timezone),
-                    _timezoneConverter.ToWallClock(a.End, timezone)))
+                .Select(a => new AvailabilityRangeResult(a.Start, a.End))
                 .ToList()
         );
     }

@@ -75,11 +75,14 @@ Layering rules:
   scratch file under `Features/<Feature>/Api/<feature>.hurl` (e.g.
   `events.hurl`, `availability.hurl`). These are not generated. Whenever a
   route, HTTP method, request body/header, or response shape changes, update the
-  matching request(s) in the same change. Hurl is used because the availability
-  read endpoints take the non-standard `QUERY` verb, which common `.http`
-  clients cannot send. Each file is a workflow that captures ids across entries;
-  its header lists the entries so a single request can be inspected with
-  `hurl --to-entry N <file>` (see README).
+  matching request(s) in the same change. Each file is a workflow that captures
+  ids across entries; its header lists the entries so a single request can be
+  inspected with `hurl --to-entry N <file>` (see README).
+- Availability is exchanged as UTC instants (ISO 8601 with an explicit offset;
+  responses are offset 0) and carries no timezone field. The server snaps
+  writes outward and projects reads inward on the event's slot grid, in the
+  event's timezone (UTC when it has none). A participant's timezone is set at
+  join only; saving availability never changes it.
 - Keep the read and write sides separated (CQRS-lite): writes via EF Core,
   reads via raw SQL + Dapper.
 - SQL read queries live in `*.sql` files embedded as resources, referenced by

@@ -15,16 +15,6 @@ public static class Interval
             throw new InvalidIntervalException();
     }
 
-    public static DateTime SnapStart(DateTime wallClock, int minutes)
-    {
-        return Floor(wallClock, minutes);
-    }
-
-    public static DateTime SnapEnd(DateTime wallClock, int minutes)
-    {
-        return Ceil(wallClock, minutes);
-    }
-
     public static DateTime Floor(DateTime wallClock, int minutes)
     {
         Validate(minutes);

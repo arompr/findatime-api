@@ -72,11 +72,10 @@ the types only:
 import type { CreateEventResponse } from "@arompr/findatime-typescript-client";
 ```
 
-## QUERY endpoints
+## Availability ranges
 
-The availability read endpoints (`getEventAvailabilities`,
-`getParticipantAvailability`) use the non-standard `QUERY` HTTP method (RFC
-10008, first-class in OpenAPI 3.2). Hey API does not yet emit operations for
-`QUERY` (see hey-api/hey-api#2660), so these two methods are hand-written in
-`src/query.ts` and exposed through `FindAtimeApi` alongside the generated ones.
-They take the same `{ body, path }` options shape as the generated SDK methods.
+Availability ranges are ISO 8601 instants (`{ start, end }`, typed as `string`).
+Send them with an explicit offset (e.g. `toISOString()`); the API answers in UTC
+(`+00:00`) and has no timezone field. Every operation, including
+`getEventAvailabilities` and `getParticipantAvailability` (plain `GET`s since
+0.1.0), comes from the generated SDK.
