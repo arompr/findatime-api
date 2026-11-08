@@ -38,6 +38,22 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
                     .HasColumnName("interval_minutes")
                     .HasDefaultValue(Interval.DefaultMinutes)
                     .IsRequired();
+                c.Property(p => p.DayStartHour)
+                    .HasColumnName("day_start_hour")
+                    .HasDefaultValue(DayWindow.DefaultStartHour)
+                    .HasSentinel(-1)
+                    .IsRequired();
+                c.Property(p => p.DayEndHour)
+                    .HasColumnName("day_end_hour")
+                    .HasDefaultValue(DayWindow.DefaultEndHour)
+                    .IsRequired();
+            });
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "ck_events_day_window",
+                    "\"day_start_hour\" >= 0 AND \"day_end_hour\" <= 24 AND \"day_start_hour\" < \"day_end_hour\"");
             });
         });
 

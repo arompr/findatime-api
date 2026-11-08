@@ -61,7 +61,7 @@ public class Event
     )
     {
         organizer.EventId = id;
-        return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, new EventParams(null, Interval.DefaultMinutes), [organizer]);
+        return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, new EventParams(null, Interval.DefaultMinutes, DayWindow.DefaultStartHour, DayWindow.DefaultEndHour), [organizer]);
     }
 
     public void AddParticipant(Participant participant)

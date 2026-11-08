@@ -31,6 +31,8 @@ public class ReadEventService
             reader.GetString(reader.GetOrdinal("name")),
             timezone,
             reader.GetInt32(reader.GetOrdinal("interval_minutes")),
+            reader.GetInt32(reader.GetOrdinal("day_start_hour")),
+            reader.GetInt32(reader.GetOrdinal("day_end_hour")),
             reader.GetBoolean(reader.GetOrdinal("is_passcode_protected"))
         );
     }

@@ -105,7 +105,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York", 30);
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York", 30, 9, 21);
 
         var joined = await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, "Europe/Berlin");
@@ -130,7 +130,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York", 30);
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "America/New_York", 30, 9, 21);
 
         var joined = await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, "Europe/Berlin");
@@ -157,5 +157,112 @@ public class GetEventAvailabilitiesTests : IntegrationTest
     {
         await Assert.ThrowsAsync<EventNotFoundException>(() => _getEventAvailabilities.Execute(
             "no-such-public-id", null));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldProjectRangesOntoCurrentInterval()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
+
+        var joined = await _joinEvent.Execute(
+            created.PublicId, null, FriendGuestId, FriendName, "UTC");
+
+        await SeedAvailability(joined.ParticipantId, (
+            new DateTimeOffset(2026, 9, 19, 8, 30, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 19, 10, 0, 0, TimeSpan.Zero)));
+
+        var result = await _getEventAvailabilities.Execute(created.PublicId, null);
+
+        var friend = result.Participants.Single(p => p.ParticipantId == joined.ParticipantId);
+        var range = Assert.Single(friend.Ranges);
+        Assert.Equal(new DateTime(2026, 9, 19, 9, 0, 0), range.Start);
+        Assert.Equal(new DateTime(2026, 9, 19, 10, 0, 0), range.End);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldKeepParticipantWhenAllRangesProjectAway()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
+
+        var joined = await _joinEvent.Execute(
+            created.PublicId, null, FriendGuestId, FriendName, "UTC");
+
+        await SeedAvailability(joined.ParticipantId, (
+            new DateTimeOffset(2026, 9, 19, 8, 30, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 19, 9, 30, 0, TimeSpan.Zero)));
+
+        var result = await _getEventAvailabilities.Execute(created.PublicId, null);
+
+        var friend = result.Participants.Single(p => p.ParticipantId == joined.ParticipantId);
+        Assert.Empty(friend.Ranges);
+        Assert.Equal(2, result.Participants.Count);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldReturnStoredRangesWhenIntervalIsRestored()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        var joined = await _joinEvent.Execute(
+            created.PublicId, null, FriendGuestId, FriendName, "UTC");
+
+        await SeedAvailability(joined.ParticipantId, (
+            new DateTimeOffset(2026, 9, 19, 8, 30, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 19, 10, 0, 0, TimeSpan.Zero)));
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
+
+        var hourGrid = await _getEventAvailabilities.Execute(created.PublicId, null);
+        var hourRange = Assert.Single(
+            hourGrid.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
+        Assert.Equal(new DateTime(2026, 9, 19, 9, 0, 0), hourRange.Start);
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 30, 9, 21);
+
+        var halfHourGrid = await _getEventAvailabilities.Execute(created.PublicId, null);
+        var halfHourRange = Assert.Single(
+            halfHourGrid.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
+        Assert.Equal(new DateTime(2026, 9, 19, 8, 30, 0), halfHourRange.Start);
+        Assert.Equal(new DateTime(2026, 9, 19, 10, 0, 0), halfHourRange.End);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldAnchorGridOnEventTimezoneForEveryViewer()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await _updateEventParams.Execute(
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), "Asia/Kolkata", 60, 9, 21);
+
+        var joined = await _joinEvent.Execute(
+            created.PublicId, null, FriendGuestId, FriendName, "Asia/Kolkata");
+
+        await SeedAvailability(joined.ParticipantId, (
+            new DateTimeOffset(2026, 9, 19, 3, 15, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 9, 19, 4, 45, 0, TimeSpan.Zero)));
+
+        var utc = await _getEventAvailabilities.Execute(created.PublicId, "UTC");
+        var utcRange = Assert.Single(
+            utc.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
+        Assert.Equal(new DateTime(2026, 9, 19, 3, 30, 0), utcRange.Start);
+        Assert.Equal(new DateTime(2026, 9, 19, 4, 30, 0), utcRange.End);
+
+        var kolkata = await _getEventAvailabilities.Execute(created.PublicId, "Asia/Kolkata");
+        var kolkataRange = Assert.Single(
+            kolkata.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
+        Assert.Equal(new DateTime(2026, 9, 19, 9, 0, 0), kolkataRange.Start);
+        Assert.Equal(new DateTime(2026, 9, 19, 10, 0, 0), kolkataRange.End);
     }
 }

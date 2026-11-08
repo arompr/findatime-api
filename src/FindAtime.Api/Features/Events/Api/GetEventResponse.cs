@@ -1,1 +1,1 @@
-public record GetEventResponse(string PublicId, string Name, bool IsPasscodeProtected, string? Timezone, int IntervalMinutes);
+public record GetEventResponse(string PublicId, string Name, bool IsPasscodeProtected, string? Timezone, int IntervalMinutes, int DayStartHour, int DayEndHour);

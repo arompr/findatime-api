@@ -52,7 +52,15 @@ public static class EventsRestService
                     if (dto is null)
                         throw new EventNotFoundException(publicId);
 
-                    GetEventResponse response = new(dto.PublicId, dto.Name, dto.IsPasscodeProtected, dto.Timezone, dto.IntervalMinutes);
+                    GetEventResponse response = new(
+                        dto.PublicId,
+                        dto.Name,
+                        dto.IsPasscodeProtected,
+                        dto.Timezone,
+                        dto.IntervalMinutes,
+                        dto.DayStartHour,
+                        dto.DayEndHour
+                    );
                     return Results.Ok(response);
                 }
             )
@@ -74,7 +82,20 @@ public static class EventsRestService
                     if (requestParams.IntervalMinutes is null)
                         return Results.BadRequest("intervalMinutes is required");
 
-                    UpdateEventParamsResponse response = await updateEventParams.Execute(publicId, parsedGuestId, requestParams.Timezone, requestParams.IntervalMinutes.Value);
+                    if (requestParams.DayStartHour is null)
+                        return Results.BadRequest("dayStartHour is required");
+
+                    if (requestParams.DayEndHour is null)
+                        return Results.BadRequest("dayEndHour is required");
+
+                    UpdateEventParamsResponse response = await updateEventParams.Execute(
+                        publicId,
+                        parsedGuestId,
+                        requestParams.Timezone,
+                        requestParams.IntervalMinutes.Value,
+                        requestParams.DayStartHour.Value,
+                        requestParams.DayEndHour.Value
+                    );
 
                     return Results.Ok(response);
                 }

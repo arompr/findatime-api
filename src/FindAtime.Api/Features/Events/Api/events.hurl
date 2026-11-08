@@ -10,14 +10,15 @@
 #   1  POST   /events
 #   2  GET    /events?guestId=
 #   3  GET    /events/{publicId}
-#   4  PUT    /events/{publicId}/params      (X-Guest-Id; timezone + intervalMinutes required)
-#   5  POST   /events/{publicId}/join
-#   6  POST   /events/{publicId}/leave
-#   7  DELETE /events/{publicId}             (missing X-Guest-Id -> 400)
-#   8  DELETE /events/{publicId}             (blank X-Guest-Id -> 400)
-#   9  DELETE /events/{publicId}             (malformed X-Guest-Id -> 400)
-#  10  DELETE /events/{publicId}             (X-Guest-Id; organizer only -> 204)
-#  11  GET    /events/{publicId}             (assert 404 after delete)
+#   4  PUT    /events/{publicId}/params      (X-Guest-Id; timezone, intervalMinutes, dayStartHour, dayEndHour required)
+#   5  PUT    /events/{publicId}/params      (inverted day window -> 400 invalid_day_window)
+#   6  POST   /events/{publicId}/join
+#   7  POST   /events/{publicId}/leave
+#   8  DELETE /events/{publicId}             (missing X-Guest-Id -> 400)
+#   9  DELETE /events/{publicId}             (blank X-Guest-Id -> 400)
+#  10  DELETE /events/{publicId}             (malformed X-Guest-Id -> 400)
+#  11  DELETE /events/{publicId}             (X-Guest-Id; organizer only -> 204)
+#  12  GET    /events/{publicId}             (assert 404 after delete)
 #
 # Static variables are defined in the first entry's [Options] and inherited by
 # the entries that follow. Ids created by earlier calls (the event's publicId and
@@ -44,23 +45,44 @@ GET {{baseUrl}}/events?guestId={{organizerGuestId}}
 
 HTTP 200
 
-# Get event by public id
+# Get event by public id (new events default to a 09:00-21:00 day window)
 GET {{baseUrl}}/events/{{publicId}}
 
 HTTP 200
+[Asserts]
+jsonpath "$.dayStartHour" == 9
+jsonpath "$.dayEndHour" == 21
 
-# Update event params (organizer only; timezone + intervalMinutes are both required)
+# Update event params (organizer only; full replace, all four fields required)
 PUT {{baseUrl}}/events/{{publicId}}/params
 X-Guest-Id: {{organizerGuestId}}
 {
     "timezone": "Europe/Berlin",
-    "intervalMinutes": 15
+    "intervalMinutes": 15,
+    "dayStartHour": 9,
+    "dayEndHour": 17
 }
 
 HTTP 200
 [Asserts]
 jsonpath "$.intervalMinutes" == 15
 jsonpath "$.timezone" == "Europe/Berlin"
+jsonpath "$.dayStartHour" == 9
+jsonpath "$.dayEndHour" == 17
+
+# Update event params with an inverted day window (400 invalid_day_window)
+PUT {{baseUrl}}/events/{{publicId}}/params
+X-Guest-Id: {{organizerGuestId}}
+{
+    "timezone": "Europe/Berlin",
+    "intervalMinutes": 15,
+    "dayStartHour": 17,
+    "dayEndHour": 9
+}
+
+HTTP 400
+[Asserts]
+jsonpath "$.error" == "invalid_day_window"
 
 # Join event
 POST {{baseUrl}}/events/{{publicId}}/join

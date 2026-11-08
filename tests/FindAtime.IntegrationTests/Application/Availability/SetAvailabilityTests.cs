@@ -253,7 +253,7 @@ public class SetAvailabilityTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60);
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
 
         var joined = await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, "Asia/Kolkata");
@@ -284,7 +284,7 @@ public class SetAvailabilityTests : IntegrationTest
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60);
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
 
         var joined = await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, FriendTimezone);
@@ -316,7 +316,7 @@ public class SetAvailabilityTests : IntegrationTest
     }
 
     [Fact]
-    public async Task Execute_ShouldNotRealignStoredRangesWhenIntervalChanges()
+    public async Task Execute_ShouldProjectStoredRangesOntoCurrentIntervalWhenRead()
     {
         var created = await _createEvent.Execute(
             TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
@@ -326,16 +326,23 @@ public class SetAvailabilityTests : IntegrationTest
 
         await _setAvailability.Execute(
             created.PublicId, Guid.Parse(joined.ParticipantId), Guid.Parse(FriendGuestId), FriendTimezone,
-            Range((new DateTime(2026, 9, 19, 9, 5, 0), new DateTime(2026, 9, 19, 9, 50, 0))));
+            Range((new DateTime(2026, 9, 19, 8, 30, 0), new DateTime(2026, 9, 19, 9, 30, 0))));
 
         await _updateEventParams.Execute(
-            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60);
+            created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
 
         var read = await _getParticipantAvailability.Execute(
             created.PublicId, Guid.Parse(joined.ParticipantId), null);
 
-        var range = Assert.Single(read.Ranges);
-        Assert.Equal(new DateTime(2026, 9, 19, 9, 0, 0), range.Start);
-        Assert.Equal(new DateTime(2026, 9, 19, 10, 0, 0), range.End);
+        Assert.Empty(read.Ranges);
+
+        var db = Scope.ServiceProvider.GetRequiredService<DbContext>();
+        var stored = await db.Availabilities
+            .Where(a => a.ParticipantId == ParticipantId.FromString(joined.ParticipantId))
+            .ToListAsync();
+
+        var range = Assert.Single(stored);
+        Assert.Equal(new DateTime(2026, 9, 19, 8, 30, 0), range.Start.UtcDateTime);
+        Assert.Equal(new DateTime(2026, 9, 19, 9, 30, 0), range.End.UtcDateTime);
     }
 }

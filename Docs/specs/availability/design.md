@@ -5,9 +5,10 @@
 Availability is a separate aggregate within the Scheduling bounded context. It
 references Participant by ParticipantId. Availability is stored as canonical UTC
 instants; wall-clock ↔ UTC conversion is centralized in a stateless
-`TimezoneConverter` singleton shared with the Events feature, and grid snapping
-in the stateless `Common/Interval` helper that owns the event interval's allowed
-set, default, and floor/ceil arithmetic.
+`TimezoneConverter` singleton shared with the Events feature, grid snapping in
+the stateless `Common/Interval` helper that owns the event interval's allowed
+set, default, and floor/ceil arithmetic, and read-time grid projection in the
+stateless `Common/AvailabilityProjection` helper.
 
 ## Domain Model
 
@@ -36,6 +37,19 @@ produce a UTC instant on an hour grid. The factory invariants and the `ToUtc`
 DST gap/ambiguous checks therefore run on the snapped values: a snapped range
 that is non-increasing or longer than 24 hours is rejected as
 `invalid_availability_range`, never clamped.
+
+Writes are only one half of the grid. Reads re-express stored ranges on the
+interval the event has **now**, through `AvailabilityProjection`: the
+participant's ranges are merged into a union, then each block is snapped inward
+(`Interval.Ceil` on the start, `Interval.Floor` on the end) in a grid anchored at
+midnight in the event's timezone (UTC when the timezone option is off), and
+blocks with no full interval are dropped. Union-before-projection matters:
+adjacent half-hour rows that jointly cover an hour must produce that hour.
+Projection never writes, so an interval change leaves every row intact and
+switching back to a finer interval restores the earlier output. Because reads
+must not fail, the helper does its own lenient DST resolution (gap → end of the
+gap, repeated → inward-compatible instant) instead of the strict `ToUtc`, which
+stays reserved for submissions.
 
 Participant resolution is done through the `Event` aggregate: `Event` exposes
 `FindParticipant(ParticipantId)` and, for writes, is loaded with its
@@ -79,9 +93,10 @@ so are an event's ranges when the event is deleted (see the Events design).
 side; `participants.timezone` is captured at join/availability-submit and
 `events.timezone` is set by the organizer's params toggle. Availability adds no
 granularity column: the grid is read from the event at write time, so stored
-ranges keep the values they were written with and are never re-snapped when the
-interval later changes. `availabilities` rows are `timestamp with time zone` and
-are always written as offset-0 UTC instants.
+ranges keep the values they were written with and are never rewritten when the
+interval later changes; reads project them inward onto the interval current at
+read time. `availabilities` rows are `timestamp with time zone` and are always
+written as offset-0 UTC instants.
 
 ## Validation
 
@@ -105,8 +120,12 @@ are always written as offset-0 UTC instants.
 Reads: API → `GetMyParticipant` / `GetEventAvailabilities` /
 `GetParticipantAvailability` → `ReadEventService` + `ReadAvailabilityService`
 (Dapper raw SQL) → PostgreSQL. The two availability reads resolve the viewer
-frame (viewer → event → UTC, forced to UTC when the option is off) and convert
-each raw UTC range via `TimezoneConverter.ToWallClock`.
+frame (viewer → event → UTC, forced to UTC when the option is off), project each
+participant's stored ranges with `AvailabilityProjection` using the event's
+current `interval_minutes` and an anchor of `event timezone ?? "UTC"`, then
+convert each projected instant via `TimezoneConverter.ToWallClock`.
+`GetEventAvailabilities` takes the interval from its own SQL;
+`GetParticipantAvailability` already has it on `EventDto`.
 
 Writes: API → `SetAvailability` → `EventRepository.GetByPublicId` (loads the
 `Event` aggregate with participants) + `AvailabilityRepository` (EF Core) →
@@ -129,7 +148,12 @@ persistence ops only; atomicity comes from a single `SaveChanges` commit in
 - Domain validation → unit tests
 - Timezone conversion (resolve, DST gap/ambiguity, wall-clock round-trip) → unit tests
 - Grid snapping arithmetic (floor/ceil, exact boundaries, cross-midnight) → unit tests, no DI
+- Inward read projection (union, short ranges, event-frame anchoring, DST) → unit tests, no DI
 - SetAvailability / read use cases → integration tests, including outward snap
   and echo, wall-clock-frame snapping for a non-hour-offset submitter, rejection
-  of a snapped range over 24 hours, and no re-alignment after an interval change
-- HTTP endpoints → integration tests (Testcontainers PostgreSQL)
+  of a snapped range over 24 hours, projection after an interval change in both
+  directions, viewer-independent slots, and participants whose ranges all
+  project away
+- HTTP endpoints → integration tests (Testcontainers PostgreSQL); the
+  `availability.hurl` workflow proves the interval switch and projection at the
+  wire level

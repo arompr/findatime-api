@@ -40,6 +40,47 @@ public class EventRepositoryTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Save_ShouldPersistDefaultDayWindow()
+    {
+        var domainEvent = _eventFactory.CreateEvent(
+            TestEvents.Name,
+            TestEvents.OrganizerGuestId,
+            TestEvents.OrganizerName,
+            _publicIdGenerator.Generate(),
+            null);
+
+        await _repository.Save(domainEvent);
+        Scope.ServiceProvider.GetRequiredService<DbContext>().ChangeTracker.Clear();
+
+        var fetched = await _repository.GetById(Guid.Parse(domainEvent.Id.Value));
+
+        Assert.Equal(9, fetched!.Params.DayStartHour);
+        Assert.Equal(21, fetched.Params.DayEndHour);
+    }
+
+    [Theory]
+    [InlineData(0, 24)]
+    [InlineData(10, 19)]
+    public async Task Save_ShouldRoundTripDayWindowOnInsert(int startHour, int endHour)
+    {
+        var domainEvent = _eventFactory.CreateEvent(
+            TestEvents.Name,
+            TestEvents.OrganizerGuestId,
+            TestEvents.OrganizerName,
+            _publicIdGenerator.Generate(),
+            null);
+        domainEvent.SetParams(new EventParams(null, 30, startHour, endHour));
+
+        await _repository.Save(domainEvent);
+        Scope.ServiceProvider.GetRequiredService<DbContext>().ChangeTracker.Clear();
+
+        var fetched = await _repository.GetById(Guid.Parse(domainEvent.Id.Value));
+
+        Assert.Equal(startHour, fetched!.Params.DayStartHour);
+        Assert.Equal(endHour, fetched.Params.DayEndHour);
+    }
+
+    [Fact]
     public async Task GetById_ShouldReturnNullForUnknownId()
     {
         var result = await _repository.GetById(Guid.NewGuid());

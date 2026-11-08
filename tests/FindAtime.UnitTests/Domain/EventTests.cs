@@ -222,6 +222,8 @@ public class EventTests
 
         Assert.Null(@event.Params.Timezone);
         Assert.Equal(30, @event.Params.IntervalMinutes);
+        Assert.Equal(9, @event.Params.DayStartHour);
+        Assert.Equal(21, @event.Params.DayEndHour);
     }
 
     [Fact]
@@ -238,20 +240,36 @@ public class EventTests
 
         var @event = Event.Create(id, publicId, "Team Meeting", participant, null);
 
-        @event.SetParams(new EventParams("Europe/Berlin", 15));
+        @event.SetParams(new EventParams("Europe/Berlin", 15, 9, 17));
 
         Assert.Equal("Europe/Berlin", @event.Params.Timezone);
         Assert.Equal(15, @event.Params.IntervalMinutes);
+        Assert.Equal(9, @event.Params.DayStartHour);
+        Assert.Equal(17, @event.Params.DayEndHour);
 
-        @event.SetParams(new EventParams(null, 60));
+        @event.SetParams(new EventParams(null, 60, 0, 24));
 
         Assert.Null(@event.Params.Timezone);
         Assert.Equal(60, @event.Params.IntervalMinutes);
+        Assert.Equal(0, @event.Params.DayStartHour);
+        Assert.Equal(24, @event.Params.DayEndHour);
     }
 
     [Fact]
     public void EventParams_ShouldThrowForInvalidInterval()
     {
-        Assert.Throws<InvalidIntervalException>(() => new EventParams(null, 45));
+        Assert.Throws<InvalidIntervalException>(() => new EventParams(null, 45, 9, 21));
+    }
+
+    [Fact]
+    public void EventParams_ShouldThrowForInvalidDayWindow()
+    {
+        Assert.Throws<InvalidDayWindowException>(() => new EventParams(null, 30, 17, 9));
+    }
+
+    [Fact]
+    public void EventParams_ShouldValidateIntervalBeforeDayWindow()
+    {
+        Assert.Throws<InvalidIntervalException>(() => new EventParams(null, 45, 17, 9));
     }
 }

@@ -18,7 +18,7 @@ the viewer's timezone when the event's timezone option is on.
 WHEN I submit my availability ranges THEN THE SYSTEM SHALL store them and return my saved availability
 WHEN I submit my availability THEN THE SYSTEM SHALL require my IANA timezone and interpret the ranges I submit as wall-clock local times in it
 WHEN I submit a range that does not line up with the event's interval (15, 30, or 60 minutes) THEN THE SYSTEM SHALL widen it outward to the nearest grid boundaries in my timezone and return the widened times
-WHEN the organizer changes the event's interval THEN THE SYSTEM SHALL leave the ranges I already submitted exactly as they were stored
+WHEN the organizer changes the event's interval THEN THE SYSTEM SHALL leave the ranges I already submitted exactly as they were stored, and reads SHALL project them inward onto the new interval grid
 WHEN I submit an empty list of ranges THEN THE SYSTEM SHALL clear my previous availability
 WHEN I submit a range whose end is not after its start THEN THE SYSTEM SHALL reject the request with an error
 WHEN I submit a range longer than 24 hours THEN THE SYSTEM SHALL reject the request with an error
@@ -32,6 +32,8 @@ WHEN I submit an unknown timezone THEN THE SYSTEM SHALL reject the request with 
 
 **Acceptance Criteria:**
 WHEN I request an event's availability THEN THE SYSTEM SHALL return every participant and their ranges
+WHEN I request an event's availability THEN THE SYSTEM SHALL project each participant's ranges inward onto the event's current interval grid, anchored in the event's timezone
+WHEN a stored range contains no full interval THEN THE SYSTEM SHALL omit it from that participant's ranges rather than widening or shrinking it to a partial slot
 WHEN I request an event's availability THEN THE SYSTEM SHALL render each range as wall-clock times in my timezone together with the timezone label
 WHEN my timezone is not supplied THEN THE SYSTEM SHALL fall back to the event's timezone, then to UTC
 WHEN the event's timezone option is off THEN THE SYSTEM SHALL return the raw UTC times with the label UTC
@@ -68,7 +70,7 @@ WHEN the requester's guest id does not match the participant THEN THE SYSTEM SHA
 **Priority:** P0
 **Persona:** organizer
 
-WHEN an event's availability is requested THEN THE SYSTEM SHALL return a flat list of participants, each with their ranges
+WHEN an event's availability is requested THEN THE SYSTEM SHALL return a flat list of participants, each with their ranges projected inward onto the event's current interval grid in the event's timezone, omitting ranges that contain no full interval
 
 ### FR-004: Read one participant's availability
 **Priority:** P1
@@ -84,6 +86,17 @@ WHEN availability is read THEN THE SYSTEM SHALL render each stored UTC range as
 wall-clock times in the viewer's timezone and return the timezone label; the
 frame resolves viewer → event → UTC, and is forced to UTC when the event's
 timezone option is off.
+
+### FR-006: Projection onto the current interval
+**Priority:** P0
+**Persona:** organizer
+
+WHEN availability is read THEN THE SYSTEM SHALL merge each participant's stored
+ranges into a union and project that union inward onto the event's current
+interval grid, anchored at midnight in the event's timezone (UTC when the
+timezone option is off), omitting blocks that contain no full interval.
+Projection SHALL NOT modify stored rows, and the viewer's timezone SHALL NOT
+change the projected instants.
 
 ## Non-Functional Requirements
 

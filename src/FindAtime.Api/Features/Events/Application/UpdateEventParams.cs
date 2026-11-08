@@ -9,7 +9,7 @@ public class UpdateEventParams
         this._timezoneConverter = timezoneConverter;
     }
 
-    public async Task<UpdateEventParamsResponse> Execute(string publicId, Guid guestId, string? timezone, int intervalMinutes)
+    public async Task<UpdateEventParamsResponse> Execute(string publicId, Guid guestId, string? timezone, int intervalMinutes, int dayStartHour, int dayEndHour)
     {
         Event? domainEvent = await this._eventRepository.GetByPublicId(publicId);
         if (domainEvent is null)
@@ -20,7 +20,7 @@ public class UpdateEventParams
         if (organizer is null || organizer.GuestId != requestGuestId)
             throw new ForbiddenException($"Guest id '{guestId}' is not the organizer of event '{publicId}'.");
 
-        var newParams = new EventParams(timezone, intervalMinutes);
+        var newParams = new EventParams(timezone, intervalMinutes, dayStartHour, dayEndHour);
 
         if (timezone is not null)
             this._timezoneConverter.Resolve(timezone);
@@ -28,6 +28,6 @@ public class UpdateEventParams
         domainEvent.SetParams(newParams);
         await this._eventRepository.Save(domainEvent);
 
-        return new UpdateEventParamsResponse(timezone, intervalMinutes);
+        return new UpdateEventParamsResponse(timezone, intervalMinutes, dayStartHour, dayEndHour);
     }
 }

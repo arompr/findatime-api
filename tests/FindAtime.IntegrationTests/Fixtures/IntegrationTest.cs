@@ -38,6 +38,7 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddSingleton<PasscodeHasher>();
         services.AddSingleton<PasscodeFactory>();
         services.AddSingleton<TimezoneConverter>();
+        services.AddSingleton<AvailabilityProjection>();
         services.AddScoped<CreateEvent>();
         services.AddScoped<JoinEvent>();
         services.AddScoped<LeaveEvent>();

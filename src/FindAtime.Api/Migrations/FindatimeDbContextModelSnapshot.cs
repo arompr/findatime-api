@@ -16,7 +16,7 @@ partial class FindatimeDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261101173839_AddEventIntervalMinutes";
+    public override string LastMigrationId => "20261108220129_AddEventDayWindow";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -85,6 +85,18 @@ partial class FindatimeDbContextModelSnapshot : ModelSnapshot
                     {
                         b1.IsRequired();
 
+                        b1.Property<int>("DayEndHour")
+                            .ValueGeneratedOnAdd()
+                            .HasColumnType("integer")
+                            .HasDefaultValue(21)
+                            .HasColumnName("day_end_hour");
+
+                        b1.Property<int>("DayStartHour")
+                            .ValueGeneratedOnAdd()
+                            .HasColumnType("integer")
+                            .HasDefaultValue(9)
+                            .HasColumnName("day_start_hour");
+
                         b1.Property<int>("IntervalMinutes")
                             .ValueGeneratedOnAdd()
                             .HasColumnType("integer")
@@ -114,7 +126,10 @@ partial class FindatimeDbContextModelSnapshot : ModelSnapshot
                 b.HasIndex("PublicId")
                     .IsUnique();
 
-                b.ToTable("events");
+                b.ToTable("events", t =>
+                    {
+                        t.HasCheckConstraint("ck_events_day_window", "\"day_start_hour\" >= 0 AND \"day_end_hour\" <= 24 AND \"day_start_hour\" < \"day_end_hour\"");
+                    });
             });
 
         modelBuilder.Entity("Participant", b =>

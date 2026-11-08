@@ -17,7 +17,7 @@ timezone option is on, rendered as wall-clock times in the viewer's timezone.
 - Ranges are submitted as wall-clock times in the participant's timezone and read as wall-clock times in the resolved viewer frame.
 - Clearing a participant's availability is done by replacing it with no ranges.
 - Submitted wall-clock bounds are snapped outward onto the event's interval grid (15, 30, or 60 minutes) in the submitter's timezone before UTC conversion: the start moves down to the previous grid boundary, the end up to the next one.
-- Stored ranges are never re-aligned when the event's interval changes; reads return them verbatim.
+- Stored ranges are never rewritten when the event's interval changes; reads project them inward onto the current interval grid instead (see Behavior → Projection onto the current interval).
 
 ## State
 
@@ -30,8 +30,9 @@ A participant has a timezone (IANA id), captured when they join or submit
 availability.
 
 The event an availability belongs to carries an interval — 15, 30, or 60
-minutes, 30 by default — which is the calendar step that submitted bounds are
-snapped to. It is an event-level setting, not a per-participant one.
+minutes, 30 by default — which is the calendar step: submitted bounds are
+snapped outward to it and reads project stored ranges inward onto it. It is an
+event-level setting, not a per-participant one.
 
 ## Behavior
 
@@ -59,6 +60,27 @@ past it; such a range is rejected as `invalid_availability_range`, never clamped
 back to the grid or to the limit. The DST gap/ambiguous rejection applies to the
 snapped bounds, exactly as it does to any other wall-clock bound.
 
+### Projection onto the current interval
+
+Reads express stored ranges on the grid of the event's current interval. A
+participant's ranges are merged into a union first (overlapping and touching
+ranges collapse into one block), and each block is projected inward: the start
+moves up to the next grid boundary and the end down to the previous one. A block
+that contains no full interval is omitted from the result; it is never widened
+or clamped. Bounds already on the grid are unchanged.
+
+The grid is anchored at midnight in the event's timezone, or at midnight UTC
+when the timezone option is off. The viewer's timezone affects only the
+wall-clock rendering, never the projected instants, so every reader sees the
+same slots.
+
+Projection is a read-time view: stored rows are never modified when the interval
+changes, so switching back to a finer interval restores the earlier output. A
+participant whose ranges all project away is still listed with an empty range
+list. Because reads must not fail, a projected boundary that falls in a DST gap
+advances to the end of the gap, and a repeated boundary resolves to the inward
+interpretation.
+
 ### Query
 
 Availability can be retrieved for all participants of an event, or for a single
@@ -66,8 +88,9 @@ participant. The request supplies an optional viewer timezone; when the event's
 timezone option is on, each stored UTC range is rendered as wall-clock in the
 viewer's frame (viewer timezone → event timezone → UTC) along with the label.
 When the option is off, times are rendered in UTC with the label `UTC` (legacy,
-no conversion). Reads return stored ranges verbatim: the event's current interval
-does not re-align them, and the responses carry no interval field.
+no conversion). Reads project the stored ranges onto the event's current
+interval (see Projection onto the current interval); the responses carry no
+interval field.
 
 ## API
 
@@ -82,16 +105,18 @@ Returns the participant id and name for the calling guest. Requires an
 
 Body carries an optional `{ timezone }` (the viewer's IANA frame; an unknown id
 is rejected with 400 `invalid_timezone`). Returns the resolved timezone label
-and every participant with their ranges rendered as wall-clock times in that
-frame. Because it reads with a body, the operation uses the `QUERY` verb on its
-original path.
+and every participant with their ranges projected onto the event's current
+interval and rendered as wall-clock times in that frame. Participants whose
+ranges all project away are listed with an empty range list. Because it reads
+with a body, the operation uses the `QUERY` verb on its original path.
 
 ### Read one participant's availability
 `QUERY /events/{publicId}/participants/{participantId}/availability`
 
 Body carries an optional `{ timezone }` viewer frame, validated and applied as
 above. Returns the participant's name, the resolved timezone label, and their
-ranges as wall-clock times.
+ranges projected onto the event's current interval and rendered as wall-clock
+times.
 
 ### Replace participant availability
 `PUT /events/{publicId}/participants/{participantId}/availability`
@@ -101,7 +126,8 @@ carries the participant's IANA `timezone` and `ranges` as `{ start, end }`
 wall-clock strings without offset; 400 `timezone is required` when blank and 400
 `invalid_timezone` for an unknown id. Each bound is snapped onto the event's
 interval grid in the supplied timezone before conversion, and the ranges returned
-are the snapped ones; 400 `invalid_availability_range` for a malformed or
+are the snapped ones (reads later project them onto the interval current at read
+time); 400 `invalid_availability_range` for a malformed or
 offset-bearing bound, a wall-clock bound that is ambiguous or nonexistent in the
 supplied timezone, or a snapped range whose end is not after its start or whose
 duration exceeds 24 hours. Returns the participant id, name, timezone label, and

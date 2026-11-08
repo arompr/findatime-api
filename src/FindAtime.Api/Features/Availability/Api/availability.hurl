@@ -101,7 +101,9 @@ PUT {{baseUrl}}/events/{{publicId}}/params
 X-Guest-Id: {{organizerGuestId}}
 {
   "timezone": "Europe/Berlin",
-  "intervalMinutes": 60
+  "intervalMinutes": 60,
+  "dayStartHour": 9,
+  "dayEndHour": 21
 }
 
 HTTP 200

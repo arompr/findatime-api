@@ -12,6 +12,7 @@ public sealed class ExceptionHandler : IExceptionHandler
         [typeof(InvalidAvailabilityRangeException)] = (StatusCodes.Status400BadRequest, "invalid_availability_range"),
         [typeof(InvalidTimezoneException)] = (StatusCodes.Status400BadRequest, "invalid_timezone"),
         [typeof(InvalidIntervalException)] = (StatusCodes.Status400BadRequest, "invalid_interval"),
+        [typeof(InvalidDayWindowException)] = (StatusCodes.Status400BadRequest, "invalid_day_window"),
         [typeof(ForbiddenException)] = (StatusCodes.Status403Forbidden, "forbidden"),
     };
 
