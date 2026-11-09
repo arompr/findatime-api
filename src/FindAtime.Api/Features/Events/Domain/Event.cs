@@ -57,11 +57,12 @@ public class Event
         PublicId publicId,
         string name,
         Participant organizer,
-        PasscodeHash? passcodeHash
+        PasscodeHash? passcodeHash,
+        string? timezone = null
     )
     {
         organizer.EventId = id;
-        return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, new EventParams(null, Interval.DefaultMinutes, DayWindow.DefaultStartHour, DayWindow.DefaultEndHour), [organizer]);
+        return new Event(id, publicId, name, organizer.ParticipantId, passcodeHash, new EventParams(timezone, Interval.DefaultMinutes, DayWindow.DefaultStartHour, DayWindow.DefaultEndHour), [organizer]);
     }
 
     public void AddParticipant(Participant participant)

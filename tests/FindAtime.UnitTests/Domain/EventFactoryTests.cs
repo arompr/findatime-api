@@ -82,4 +82,21 @@ public class EventFactoryTests
 
         Assert.Equal(30, @event.Params.IntervalMinutes);
     }
+
+    [Fact]
+    public void CreateEvent_ShouldDefaultTimezoneToNull()
+    {
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", PublicId.FromString("abc123"), null);
+
+        Assert.Null(@event.Params.Timezone);
+    }
+
+    [Fact]
+    public void CreateEvent_ShouldAnchorEventAndOrganizerToGivenTimezone()
+    {
+        var @event = _eventFactory.CreateEvent("Team Meeting", "uuid-1", "Alice", PublicId.FromString("abc123"), null, "America/New_York");
+
+        Assert.Equal("America/New_York", @event.Params.Timezone);
+        Assert.Equal("America/New_York", @event.FindParticipant(@event.OrganizerParticipantId)!.Timezone);
+    }
 }

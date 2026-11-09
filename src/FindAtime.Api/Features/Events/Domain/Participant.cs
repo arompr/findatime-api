@@ -15,6 +15,8 @@ public class Participant
     [Column("event_id")]
     public EventId EventId { get; set; }
 
+    // Recorded on join for future use; nothing reads it yet. The event's own
+    // timezone (EventParams.Timezone) is what anchors hours and slots.
     [Column("timezone")]
     public string? Timezone { get; set; }
 

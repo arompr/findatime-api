@@ -33,7 +33,8 @@ variable: participantGuestId="9c8d7e6f-5a4b-3c2d-1e0f-9a8b7c6d5e4f"
     "name": "Saturday Night Local",
     "guestId": "{{organizerGuestId}}",
     "organizerName": "Alice",
-    "isPasscodeProtected": false
+    "isPasscodeProtected": false,
+    "timezone": "Europe/Paris"
 }
 
 HTTP 201
@@ -45,13 +46,14 @@ GET {{baseUrl}}/events?guestId={{organizerGuestId}}
 
 HTTP 200
 
-# Get event by public id (new events default to a 09:00-21:00 day window)
+# Get event by public id (new events default to a 09:00-21:00 day window, anchored to the creator timezone)
 GET {{baseUrl}}/events/{{publicId}}
 
 HTTP 200
 [Asserts]
 jsonpath "$.dayStartHour" == 9
 jsonpath "$.dayEndHour" == 21
+jsonpath "$.timezone" == "Europe/Paris"
 
 # Update event params (organizer only; full replace, all four fields required)
 PUT {{baseUrl}}/events/{{publicId}}/params

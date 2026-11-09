@@ -16,7 +16,8 @@ public static class EventsRestService
                         requestParams.Name,
                         requestParams.GuestId,
                         requestParams.OrganizerName,
-                        requestParams.IsPasscodeProtected
+                        requestParams.IsPasscodeProtected,
+                        string.IsNullOrWhiteSpace(requestParams.Timezone) ? null : requestParams.Timezone
                     );
                     return Results.Created($"/events/{response.PublicId}", response);
                 }
