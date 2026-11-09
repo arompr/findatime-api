@@ -1,20 +1,21 @@
+using System.Security.Claims;
+
 public static class EventsRestService
 {
+    public const string JoinRateLimitPolicy = "join";
+
     public static void MapEvents(this WebApplication app)
     {
         app.MapPost(
                 "/events",
-                async (CreateEventRequestParams requestParams, CreateEvent createEvent) =>
+                async (CreateEventRequestParams requestParams, ClaimsPrincipal user, CreateEvent createEvent) =>
                 {
-                    if (!Guid.TryParse(requestParams.GuestId, out _))
-                        return Results.BadRequest("guestId must be a valid uuid");
-
                     if (string.IsNullOrWhiteSpace(requestParams.OrganizerName))
                         return Results.BadRequest("organizerName is required");
 
                     var response = await createEvent.Execute(
                         requestParams.Name,
-                        requestParams.GuestId,
+                        user.GetGuestId().ToString(),
                         requestParams.OrganizerName,
                         requestParams.IsPasscodeProtected,
                         string.IsNullOrWhiteSpace(requestParams.Timezone) ? null : requestParams.Timezone
@@ -23,19 +24,16 @@ public static class EventsRestService
                 }
             )
             .WithName("CreateEvent")
-            .Produces<CreateEventResponse>(StatusCodes.Status201Created);
+            .RequireAuthorization()
+            .Produces<CreateEventResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         app.MapGet(
                 "/events",
-                async (string? guestId, ReadEventService readEventService) =>
+                async (ClaimsPrincipal user, ReadEventService readEventService) =>
                 {
-                    if (string.IsNullOrWhiteSpace(guestId))
-                        return Results.BadRequest("guestId is required");
-
-                    if (!Guid.TryParse(guestId, out var parsed))
-                        return Results.BadRequest("guestId must be a valid uuid");
-
-                    IReadOnlyList<EventSummaryDto> events = await readEventService.SearchEvents(parsed);
+                    IReadOnlyList<EventSummaryDto> events = await readEventService.SearchEvents(user.GetGuestId());
                     var response = new SearchEventsResponse(
                         events.Select(e => new EventSummaryResponse(e.PublicId, e.Name, e.IsOrganizer)).ToList()
                     );
@@ -43,7 +41,9 @@ public static class EventsRestService
                 }
             )
             .WithName("SearchEvents")
-            .Produces<SearchEventsResponse>(StatusCodes.Status200OK);
+            .RequireAuthorization()
+            .Produces<SearchEventsResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         app.MapGet(
                 "/events/{publicId}",
@@ -71,15 +71,8 @@ public static class EventsRestService
 
         app.MapPut(
                 "/events/{publicId}/params",
-                async (string publicId, UpdateEventParamsRequestParams requestParams, HttpContext httpContext, UpdateEventParams updateEventParams) =>
+                async (string publicId, UpdateEventParamsRequestParams requestParams, ClaimsPrincipal user, UpdateEventParams updateEventParams) =>
                 {
-                    string? guestId = httpContext.Request.Headers["X-Guest-Id"].FirstOrDefault();
-                    if (string.IsNullOrWhiteSpace(guestId))
-                        return Results.BadRequest("X-Guest-Id header is required");
-
-                    if (!Guid.TryParse(guestId, out var parsedGuestId))
-                        return Results.BadRequest("X-Guest-Id header must be a valid uuid");
-
                     if (requestParams.IntervalMinutes is null)
                         return Results.BadRequest("intervalMinutes is required");
 
@@ -91,7 +84,7 @@ public static class EventsRestService
 
                     UpdateEventParamsResponse response = await updateEventParams.Execute(
                         publicId,
-                        parsedGuestId,
+                        user.GetGuestId(),
                         requestParams.Timezone,
                         requestParams.IntervalMinutes.Value,
                         requestParams.DayStartHour.Value,
@@ -102,18 +95,17 @@ public static class EventsRestService
                 }
             )
             .WithName("UpdateEventParams")
+            .RequireAuthorization()
             .Produces<UpdateEventParamsResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapPost(
                 "/events/{publicId}/join",
-                async (string publicId, JoinEventRequestParams requestParams, JoinEvent joinEvent) =>
+                async (string publicId, JoinEventRequestParams requestParams, ClaimsPrincipal user, JoinEvent joinEvent) =>
                 {
-                    if (!Guid.TryParse(requestParams.GuestId, out _))
-                        return Results.BadRequest("guestId must be a valid uuid");
-
                     if (string.IsNullOrWhiteSpace(requestParams.ParticipantName))
                         return Results.BadRequest("participantName is required");
 
@@ -123,7 +115,7 @@ public static class EventsRestService
                     JoinEventResponse response = await joinEvent.Execute(
                         publicId,
                         requestParams.Passcode,
-                        requestParams.GuestId,
+                        user.GetGuestId().ToString(),
                         requestParams.ParticipantName,
                         requestParams.Timezone
                     );
@@ -132,42 +124,44 @@ public static class EventsRestService
                 }
             )
             .WithName("JoinEvent")
-            .Produces<JoinEventResponse>(StatusCodes.Status201Created);
+            .RequireAuthorization()
+            .RequireRateLimiting(JoinRateLimitPolicy)
+            .Produces<JoinEventResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status429TooManyRequests);
 
         app.MapPost(
                 "/events/{publicId}/leave",
-                async (string publicId, LeaveEventRequestParams requestParams, LeaveEvent leaveEvent) =>
+                async (string publicId, ClaimsPrincipal user, LeaveEvent leaveEvent) =>
                 {
-                    if (!Guid.TryParse(requestParams.GuestId, out _))
-                        return Results.BadRequest("guestId must be a valid uuid");
-
-                    await leaveEvent.Execute(publicId, requestParams.GuestId);
+                    await leaveEvent.Execute(publicId, user.GetGuestId().ToString());
 
                     return Results.NoContent();
                 }
             )
             .WithName("LeaveEvent")
-            .Produces(StatusCodes.Status204NoContent);
+            .RequireAuthorization()
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
 
         app.MapDelete(
                 "/events/{publicId}",
-                async (string publicId, HttpContext httpContext, DeleteEvent deleteEvent) =>
+                async (string publicId, ClaimsPrincipal user, DeleteEvent deleteEvent) =>
                 {
-                    string? guestId = httpContext.Request.Headers["X-Guest-Id"].FirstOrDefault();
-                    if (string.IsNullOrWhiteSpace(guestId))
-                        return Results.BadRequest("X-Guest-Id header is required");
-
-                    if (!Guid.TryParse(guestId, out var parsedGuestId))
-                        return Results.BadRequest("X-Guest-Id header must be a valid uuid");
-
-                    await deleteEvent.Execute(publicId, parsedGuestId);
+                    await deleteEvent.Execute(publicId, user.GetGuestId());
 
                     return Results.NoContent();
                 }
             )
             .WithName("DeleteEvent")
+            .RequireAuthorization()
             .Produces(StatusCodes.Status204NoContent)
-            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
     }

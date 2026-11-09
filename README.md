@@ -60,13 +60,15 @@ Install Hurl with your package manager or any method from the
 With the API running, execute a file:
 
 ```
+hurl --test src/FindAtime.Api/Features/Identity/Api/identity.hurl
 hurl --test src/FindAtime.Api/Features/Events/Api/events.hurl
 hurl --test src/FindAtime.Api/Features/Availability/Api/availability.hurl
 ```
 
 Each entry asserts at least its status code (`HTTP 200`, `HTTP 201`, …). The
 files are self-contained and run against `http://localhost:5263`: each creates
-its own event (and, for availability, a participant) and threads the returned
+its own guests (capturing their tokens for `Authorization: Guest <token>`), its
+own event (and, for availability, a participant) and threads the returned
 ids into later calls with [Hurl captures](https://hurl.dev/docs/capturing-response.html),
 so they can be run repeatedly without manual setup.
 

@@ -2,7 +2,7 @@
 
 Events are the core of Findatime: an organizer creates a shareable event,
 participants join it (optionally behind a passcode), and everyone is identified
-by a per-browser guest id rather than a real account.
+by a server-issued guest token rather than a real account.
 
 ## User Stories
 
@@ -16,7 +16,7 @@ WHEN I create an event THEN THE SYSTEM SHALL return a shareable public id and wh
 WHEN I create a passcode-protected event THEN THE SYSTEM SHALL return the generated passcode
 WHEN I create an unprotected event THEN THE SYSTEM SHALL return no passcode
 WHEN I omit the organizer name THEN THE SYSTEM SHALL reject the request
-WHEN I supply a malformed guest id THEN THE SYSTEM SHALL reject the request
+WHEN I have no valid guest token THEN THE SYSTEM SHALL reject the request as unauthorized
 
 ### US-002: Join an event
 **As a** participant
@@ -59,9 +59,9 @@ WHEN the public id does not exist THEN THE SYSTEM SHALL respond not found
 **So that** I can find events I care about
 
 **Acceptance Criteria:**
-WHEN I search by my guest id THEN THE SYSTEM SHALL return every event I am a participant in, each flagged with whether I am the organizer
+WHEN I list my events THEN THE SYSTEM SHALL return every event I am a participant in, each flagged with whether I am the organizer
 WHEN I have no events THEN THE SYSTEM SHALL return an empty list
-WHEN I omit or malform my guest id THEN THE SYSTEM SHALL reject the request
+WHEN I have no valid guest token THEN THE SYSTEM SHALL reject the request as unauthorized
 
 ### US-006: Toggle timezone-aware display for an event
 **As an** organizer
@@ -194,7 +194,7 @@ mean the events that matter most are the ones that cannot be removed.
 ## Non-Functional Requirements
 
 ### NFR-001: Access control
-The only access control is the shareable public id plus the per-browser guest id;
+Access control is the shareable public id plus the server-issued guest token;
 there is no real authentication in this MVP.
 
 ### NFR-002: Passcode security
@@ -216,4 +216,4 @@ existing events or participants with no timezone remain valid.
 - Cross-timezone scheduling: events store an optional timezone and participate
   in timezone-aware rendering, but the system does not suggest a common slot or
   analyze overlaps across timezones.
-- Real authentication or accounts beyond the public id + guest id trust model.
+- User accounts beyond the guest-token model (planned as a later phase).

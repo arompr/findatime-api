@@ -11,11 +11,14 @@ public class GetEventAvailabilities
         _availabilityProjection = availabilityProjection;
     }
 
-    public async Task<GetEventAvailabilitiesResult> Execute(string publicId)
+    public async Task<GetEventAvailabilitiesResult> Execute(string publicId, Guid guestId)
     {
         EventAvailabilityDto? dto = await _readAvailabilityService.GetAllForEvent(publicId);
         if (dto is null)
             throw new EventNotFoundException(publicId);
+
+        if (await _readAvailabilityService.GetParticipantByEventAndGuest(publicId, guestId) is null)
+            throw new ForbiddenException($"Guest id '{guestId}' is not a participant of event '{publicId}'.");
 
         string anchorTimezone = dto.EventTimezone ?? "UTC";
 

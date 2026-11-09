@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 
 public static class ServiceCollectionExtensions
@@ -34,6 +35,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<LeaveEvent>();
         services.AddScoped<UpdateEventParams>();
         services.AddScoped<DeleteEvent>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<GuestTokenGenerator>();
+        services.AddSingleton<GuestTokenHasher>();
+        services.AddScoped<GuestRepository>();
+        services.AddScoped<ReadGuestService>();
+        services.AddScoped<CreateGuest>();
+        services.AddScoped<AdoptLegacyGuest>();
 
         return services;
     }

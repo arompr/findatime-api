@@ -103,7 +103,7 @@ public class SetAvailabilityTests : IntegrationTest
         Assert.Equal(end, stored.End);
 
         var read = Assert.Single(
-            (await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId))).Ranges);
+            (await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId), TestEvents.OrganizerGuid)).Ranges);
         Assert.Equal(start, read.Start);
         Assert.Equal(end, read.End);
     }
@@ -137,7 +137,7 @@ public class SetAvailabilityTests : IntegrationTest
         await Save(publicId, participantId, (Early, Early.AddHours(1)));
         await Save(publicId, participantId, (Late, Late.AddHours(1)));
 
-        var read = await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId));
+        var read = await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId), TestEvents.OrganizerGuid);
 
         Assert.Single(read.Ranges);
         Assert.Equal(Late, read.Ranges[0].Start);
@@ -151,7 +151,7 @@ public class SetAvailabilityTests : IntegrationTest
         await Save(publicId, participantId, (Early, Early.AddHours(1)), (Late, Late.AddHours(1)));
         await Save(publicId, participantId);
 
-        var read = await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId));
+        var read = await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId), TestEvents.OrganizerGuid);
 
         Assert.Empty(read.Ranges);
     }
@@ -263,11 +263,11 @@ public class SetAvailabilityTests : IntegrationTest
         Assert.Equal(Utc(2026, 9, 19, 15, 0), echoed.End);
 
         var read = Assert.Single(
-            (await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId))).Ranges);
+            (await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId), TestEvents.OrganizerGuid)).Ranges);
         Assert.Equal(Utc(2026, 9, 19, 13, 0), read.Start);
         Assert.Equal(Utc(2026, 9, 19, 15, 0), read.End);
 
-        var eventRead = await _getEventAvailabilities.Execute(publicId);
+        var eventRead = await _getEventAvailabilities.Execute(publicId, TestEvents.OrganizerGuid);
         var friendRange = Assert.Single(
             eventRead.Participants.Single(p => p.ParticipantId == participantId).Ranges);
         Assert.Equal(read, friendRange);
@@ -314,7 +314,7 @@ public class SetAvailabilityTests : IntegrationTest
         await _updateEventParams.Execute(
             publicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
 
-        var read = await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId));
+        var read = await _getParticipantAvailability.Execute(publicId, Guid.Parse(participantId), TestEvents.OrganizerGuid);
 
         Assert.Empty(read.Ranges);
 

@@ -49,7 +49,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
         await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, "Europe/Berlin");
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
         Assert.Equal(2, result.Participants.Count);
         Assert.All(result.Participants, p => Assert.Empty(p.Ranges));
     }
@@ -68,7 +68,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
 
         await SeedAvailability(joined.ParticipantId, (late, late.AddHours(1)), (early, early.AddHours(1)));
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
 
         var friend = result.Participants.Single(p => p.ParticipantId == joined.ParticipantId);
         Assert.Equal(2, friend.Ranges.Count);
@@ -88,7 +88,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
         await _joinEvent.Execute(
             created.PublicId, null, FriendGuestId, FriendName, "Europe/Berlin");
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
 
         Assert.Equal(TestEvents.OrganizerName, result.Participants[0].Name);
         Assert.Equal(FriendName, result.Participants[1].Name);
@@ -110,7 +110,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             new DateTimeOffset(2026, 11, 3, 14, 0, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 11, 3, 18, 0, 0, TimeSpan.Zero)));
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
 
         var friend = result.Participants.Single(p => p.ParticipantId == joined.ParticipantId);
         var range = Assert.Single(friend.Ranges);
@@ -138,7 +138,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             new DateTimeOffset(2026, 9, 19, 3, 30, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 9, 19, 5, 30, 0, TimeSpan.Zero)));
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
 
         var range = Assert.Single(
             result.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
@@ -150,7 +150,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
     public async Task Execute_ShouldThrowForUnknownEvent()
     {
         await Assert.ThrowsAsync<EventNotFoundException>(() => _getEventAvailabilities.Execute(
-            "no-such-public-id"));
+            "no-such-public-id", TestEvents.OrganizerGuid));
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             new DateTimeOffset(2026, 9, 19, 8, 30, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 9, 19, 10, 0, 0, TimeSpan.Zero)));
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
 
         var friend = result.Participants.Single(p => p.ParticipantId == joined.ParticipantId);
         var range = Assert.Single(friend.Ranges);
@@ -193,7 +193,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             new DateTimeOffset(2026, 9, 19, 8, 30, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 9, 19, 9, 30, 0, TimeSpan.Zero)));
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
 
         var friend = result.Participants.Single(p => p.ParticipantId == joined.ParticipantId);
         Assert.Empty(friend.Ranges);
@@ -216,7 +216,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
         await _updateEventParams.Execute(
             created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 60, 9, 21);
 
-        var hourGrid = await _getEventAvailabilities.Execute(created.PublicId);
+        var hourGrid = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
         var hourRange = Assert.Single(
             hourGrid.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
         Assert.Equal(new DateTimeOffset(2026, 9, 19, 9, 0, 0, TimeSpan.Zero), hourRange.Start);
@@ -224,7 +224,7 @@ public class GetEventAvailabilitiesTests : IntegrationTest
         await _updateEventParams.Execute(
             created.PublicId, Guid.Parse(TestEvents.OrganizerGuestId), null, 30, 9, 21);
 
-        var halfHourGrid = await _getEventAvailabilities.Execute(created.PublicId);
+        var halfHourGrid = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
         var halfHourRange = Assert.Single(
             halfHourGrid.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
         Assert.Equal(new DateTimeOffset(2026, 9, 19, 8, 30, 0, TimeSpan.Zero), halfHourRange.Start);
@@ -247,12 +247,34 @@ public class GetEventAvailabilitiesTests : IntegrationTest
             new DateTimeOffset(2026, 9, 19, 3, 15, 0, TimeSpan.Zero),
             new DateTimeOffset(2026, 9, 19, 4, 45, 0, TimeSpan.Zero)));
 
-        var result = await _getEventAvailabilities.Execute(created.PublicId);
+        var result = await _getEventAvailabilities.Execute(created.PublicId, TestEvents.OrganizerGuid);
 
         // 09:00-10:00 IST
         var range = Assert.Single(
             result.Participants.Single(p => p.ParticipantId == joined.ParticipantId).Ranges);
         Assert.Equal(new DateTimeOffset(2026, 9, 19, 3, 30, 0, TimeSpan.Zero), range.Start);
         Assert.Equal(new DateTimeOffset(2026, 9, 19, 4, 30, 0, TimeSpan.Zero), range.End);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldForbidGuestWhoIsNotAParticipant()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => _getEventAvailabilities.Execute(
+            created.PublicId, Guid.Parse(FriendGuestId)));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldAllowGuestOnceJoined()
+    {
+        var created = await _createEvent.Execute(
+            TestEvents.Name, TestEvents.OrganizerGuestId, TestEvents.OrganizerName, false);
+        await _joinEvent.Execute(created.PublicId, null, FriendGuestId, FriendName, "UTC");
+
+        var result = await _getEventAvailabilities.Execute(created.PublicId, Guid.Parse(FriendGuestId));
+
+        Assert.Equal(2, result.Participants.Count);
     }
 }

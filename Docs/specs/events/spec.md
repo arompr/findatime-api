@@ -4,7 +4,8 @@
 
 Events represent a schedulable meeting. An organizer creates an event and
 becomes its first participant; other guests join (optionally supplying a
-passcode) and are tracked by a per-browser guest id. The event is shared via a
+passcode) and are tracked by their guest id, which the API resolves from the
+caller's guest token (see [Identity](../identity/spec.md)). The event is shared via a
 short public id.
 
 ## Invariants
@@ -45,7 +46,7 @@ An event has:
 A participant has:
 
 - ParticipantId (UUID)
-- GuestId (UUID supplied by the client)
+- GuestId (UUID of the authenticated guest; never supplied in a request)
 - Name
 - EventId
 - Timezone (IANA id; required at join)
@@ -85,8 +86,8 @@ organizer-only, and never touches stored availability.
 
 ### Delete
 
-The organizer deletes their own event by public id, identifying themselves with
-the `X-Guest-Id` header. Deletion removes the event, every participant, and every
+The organizer deletes their own event by public id, identified by their guest
+token. Deletion removes the event, every participant, and every
 participant's availability ranges, and it succeeds however many participants are
 still joined. No passcode is required, even for a protected event: organizer
 identity is the only gate. The delete is hard — no soft-delete flag, no record,
@@ -103,17 +104,21 @@ list.
 
 ## API
 
+Every endpoint except `GET /events/{publicId}` requires
+`Authorization: Guest <token>` and answers 401 `unauthorized` without a valid
+token. The caller is always the token's guest; no endpoint accepts a guest id.
+
 ### Create an event
 `POST /events`
 
-Body carries name, guest id (uuid), organizer name, and a passcode-protected
-flag. Returns 201 with the public id, protected flag, and the passcode (null
+Body carries name, organizer name, a passcode-protected flag, and an optional
+creator timezone. The caller becomes the organizer. Returns 201 with the public id, protected flag, and the passcode (null
 when unprotected). Location is `/events/{publicId}`.
 
 ### Search events
-`GET /events?guestId={guestId}`
+`GET /events`
 
-Returns every event the guest participates in, each with its public id, name,
+Returns every event the calling guest participates in, each with its public id, name,
 and an organizer flag. Params (timezone, interval) are not part of the list
 contract.
 
@@ -126,38 +131,37 @@ when the timezone option is off), and interval as `intervalMinutes`, or 404.
 ### Update event params
 `PUT /events/{publicId}/params`
 
-Organizer-only (matched via the `X-Guest-Id` header) full-replace of the event's
+Organizer-only full-replace of the event's
 params. Body `{ timezone, intervalMinutes }` — both fields are required:
 `timezone` is an IANA id to enable/change the option or `null` to disable it, and
 `intervalMinutes` is one of 15, 30, 60. Returns 200 with the resulting
 `{ timezone, intervalMinutes }`; 400 `invalid_interval` for an out-of-set
 interval, 400 `invalid_timezone` for an unknown id, 400 `intervalMinutes is
-required` for a missing interval, 400 for a missing/malformed guest id header,
+required` for a missing interval,
 403 `forbidden` for a non-organizer, 404 if the event is missing.
 
 ### Join an event
 `POST /events/{publicId}/join`
 
 `{publicId}` is the shareable public id. Body carries the passcode (optional),
-guest id (uuid), participant name, and the participant's IANA timezone
+participant name, and the participant's IANA timezone
 (required). Returns 201 with the participant id and name; 404 if the event is
 missing, 401 if the passcode is wrong, 409 if the guest already joined, 400
 `timezone is required` if the timezone is blank, 400 `invalid_timezone` if it is
-not a known IANA id.
+not a known IANA id, 429 `rate_limited` when the caller's IP exceeds the
+per-minute join limit (`RateLimiting:JoinsPerMinute`).
 
 ### Leave an event
 `POST /events/{publicId}/leave`
 
-Body carries the guest id (uuid). Returns 204; 404 if the event is missing, 409
+No body; the caller leaves. Returns 204; 404 if the event is missing, 409
 if the organizer attempts to leave.
 
 ### Delete an event
 `DELETE /events/{publicId}`
 
-Organizer-only, with the caller identified by the `X-Guest-Id` header; there is
-no request body. Returns 204 with no body, deleting the event together with its
-participants and their availability ranges. 400 for a missing, blank, or
-malformed guest id header (rejected before any event lookup), 403 `forbidden`
+Organizer-only; there is no request body. Returns 204 with no body, deleting the event together with its
+participants and their availability ranges. 403 `forbidden`
 for a non-organizer, 404 `event_not_found` when the event is missing or already
 deleted.
 
@@ -165,4 +169,4 @@ Every read of a deleted event misses it: `GET /events/{publicId}` and
 `GET /events/{publicId}/participant` return 404 `event_not_found`, both
 availability reads (`GET /events/{publicId}/availabilities` and
 `GET /events/{publicId}/participants/{participantId}/availability`) return 404
-`event_not_found`, and the event no longer appears in `GET /events?guestId=`.
+`event_not_found`, and the event no longer appears in `GET /events`.

@@ -1,1 +1,1 @@
-public record CreateEventRequestParams(string Name, string GuestId, string OrganizerName, bool IsPasscodeProtected, string? Timezone = null);
+public record CreateEventRequestParams(string Name, string OrganizerName, bool IsPasscodeProtected, string? Timezone = null);
