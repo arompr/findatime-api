@@ -9,8 +9,15 @@ public class GuestRepository
 
     public async Task Save(Guest guest)
     {
-        this._dbContext.Guests.Add(guest);
+        if (this._dbContext.Entry(guest).State == EntityState.Detached)
+            this._dbContext.Guests.Add(guest);
+
         await this._dbContext.SaveChangesAsync();
+    }
+
+    public Task<Guest?> GetById(GuestId id)
+    {
+        return this._dbContext.Guests.SingleOrDefaultAsync(g => g.Id == id);
     }
 
     public Task<bool> Exists(GuestId id)
@@ -23,10 +30,4 @@ public class GuestRepository
         return this._dbContext.Participants.AnyAsync(p => p.GuestId == id);
     }
 
-    public Task TouchLastSeen(GuestId id, DateTimeOffset seenAt)
-    {
-        return this._dbContext.Guests
-            .Where(g => g.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(g => g.LastSeenAt, seenAt));
-    }
 }

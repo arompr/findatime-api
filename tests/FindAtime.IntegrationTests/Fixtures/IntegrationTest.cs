@@ -55,6 +55,7 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddScoped<ReadGuestService>();
         services.AddScoped<CreateGuest>();
         services.AddScoped<AdoptLegacyGuest>();
+        services.AddScoped<RecordGuestActivity>();
 
         _provider = services.BuildServiceProvider();
         Scope = _provider.CreateScope();

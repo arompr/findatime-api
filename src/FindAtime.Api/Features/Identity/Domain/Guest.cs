@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 [Table("guests")]
 public class Guest
 {
+    public static readonly TimeSpan LastSeenResolution = TimeSpan.FromHours(1);
+
     [Column("id")]
     public GuestId Id { get; private set; }
 
@@ -23,5 +25,14 @@ public class Guest
         this.TokenHash = tokenHash;
         this.CreatedAt = createdAt;
         this.LastSeenAt = createdAt;
+    }
+
+    public static bool IsSeenUpdateDue(DateTimeOffset lastSeenAt, DateTimeOffset now) =>
+        now - lastSeenAt >= LastSeenResolution;
+
+    public void MarkSeen(DateTimeOffset now)
+    {
+        if (IsSeenUpdateDue(this.LastSeenAt, now))
+            this.LastSeenAt = now;
     }
 }

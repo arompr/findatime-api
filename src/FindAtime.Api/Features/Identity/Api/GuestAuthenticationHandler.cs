@@ -7,10 +7,8 @@ public sealed class GuestAuthenticationHandler : AuthenticationHandler<Authentic
 {
     public const string SchemeName = "Guest";
 
-    private static readonly TimeSpan LastSeenResolution = TimeSpan.FromHours(1);
-
     private readonly ReadGuestService _readGuestService;
-    private readonly GuestRepository _guestRepository;
+    private readonly RecordGuestActivity _recordGuestActivity;
     private readonly GuestTokenHasher _tokenHasher;
     private readonly TimeProvider _timeProvider;
 
@@ -19,14 +17,14 @@ public sealed class GuestAuthenticationHandler : AuthenticationHandler<Authentic
         ILoggerFactory logger,
         UrlEncoder encoder,
         ReadGuestService readGuestService,
-        GuestRepository guestRepository,
+        RecordGuestActivity recordGuestActivity,
         GuestTokenHasher tokenHasher,
         TimeProvider timeProvider
     )
         : base(options, logger, encoder)
     {
         _readGuestService = readGuestService;
-        _guestRepository = guestRepository;
+        _recordGuestActivity = recordGuestActivity;
         _tokenHasher = tokenHasher;
         _timeProvider = timeProvider;
     }
@@ -49,9 +47,8 @@ public sealed class GuestAuthenticationHandler : AuthenticationHandler<Authentic
         if (guest is null)
             return AuthenticateResult.Fail("Guest token is invalid.");
 
-        DateTimeOffset now = _timeProvider.GetUtcNow();
-        if (now - guest.LastSeenAt >= LastSeenResolution)
-            await _guestRepository.TouchLastSeen(GuestId.FromString(guest.GuestId.ToString()), now);
+        if (Guest.IsSeenUpdateDue(guest.LastSeenAt, _timeProvider.GetUtcNow()))
+            await _recordGuestActivity.Execute(GuestId.FromString(guest.GuestId.ToString()));
 
         var identity = new ClaimsIdentity(
             [new Claim(CurrentGuest.GuestIdClaim, guest.GuestId.ToString())],

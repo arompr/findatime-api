@@ -23,7 +23,7 @@ guest row is the credential attached to it.
   - `GuestTokenGenerator`: 32 random bytes, base64url (43 chars).
   - `GuestTokenHasher`: SHA-256 of the token. Tokens are high-entropy, so a
     fast unsalted hash is sufficient and allows lookup by hash.
-  - `GuestRepository` (EF): add, exists, touch `last_seen_at`, and "does any
+  - `GuestRepository` (EF): get by id, save, exists, and "does any
     participant use this guest id".
   - `ReadGuestService` (Dapper, `get_guest_by_token_hash.sql`): token-hash →
     guest id + last seen, used on every authenticated request.
@@ -38,8 +38,9 @@ guest row is the credential attached to it.
 ### Authentication
 - `GuestAuthenticationHandler` (scheme `Guest`) parses
   `Authorization: Guest <token>`, looks the hash up through `ReadGuestService`,
-  and issues a principal with a `guest_id` claim. It touches `last_seen_at` at
-  most once per hour. No header / other scheme → no result; unknown token →
+  and issues a principal with a `guest_id` claim. When `last_seen_at` is
+  older than an hour it runs `RecordGuestActivity` (load `Guest`, `MarkSeen`,
+  save). No header / other scheme → no result; unknown token →
   failure. The challenge writes `401 { message, error: "unauthorized" }`.
 - `CurrentGuest.GetGuestId(this ClaimsPrincipal)` returns the caller's id;
   endpoints take `ClaimsPrincipal user` and call `.RequireAuthorization()`.

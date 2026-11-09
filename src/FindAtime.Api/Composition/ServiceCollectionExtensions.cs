@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ReadGuestService>();
         services.AddScoped<CreateGuest>();
         services.AddScoped<AdoptLegacyGuest>();
+        services.AddScoped<RecordGuestActivity>();
 
         return services;
     }
