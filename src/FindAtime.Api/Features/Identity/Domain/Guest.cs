@@ -9,7 +9,7 @@ public class Guest
     public GuestId Id { get; private set; }
 
     [Column("token_hash")]
-    public byte[] TokenHash { get; private set; } = null!;
+    public GuestTokenHash TokenHash { get; private set; } = null!;
 
     [Column("created_at")]
     public DateTimeOffset CreatedAt { get; private set; }
@@ -19,7 +19,7 @@ public class Guest
 
     private Guest() { }
 
-    public Guest(GuestId id, byte[] tokenHash, DateTimeOffset createdAt)
+    public Guest(GuestId id, GuestTokenHash tokenHash, DateTimeOffset createdAt)
     {
         this.Id = id;
         this.TokenHash = tokenHash;

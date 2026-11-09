@@ -1,1 +1,1 @@
-public record CreateGuestResult(string GuestToken);
+public record CreateGuestResult(GuestToken GuestToken);

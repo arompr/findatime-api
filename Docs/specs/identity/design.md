@@ -7,8 +7,11 @@
 - Domain: `Guest` (EF-mapped in the shared `DbContext`, table `guests`).
   `MarkSeen(now)` owns the last-seen rule: it moves `LastSeenAt` only once
   `LastSeenResolution` (1 h) has elapsed.
-- Infra: `GuestTokenGenerator` (`RandomNumberGenerator`, base64url),
-  `GuestTokenHasher` (SHA-256), `GuestRepository` (EF: get by id, save,
+  `Domain/Token/` mirrors the passcode types: `GuestToken`, `GuestTokenHash`
+  (stored as a single `bytea` via an EF value conversion), `GuestTokenPolicy`,
+  `GuestTokenCreated`, and `GuestTokenFactory` (generate → hash).
+- Infra: `GuestTokenGenerator` (`RandomNumberGenerator`, base64url → `GuestToken`),
+  `GuestTokenHasher` (SHA-256 → `GuestTokenHash`), `GuestRepository` (EF: get by id, save,
   exists, participations check),
   `ReadGuestService` (Dapper, `get_guest_by_token_hash.sql`).
 - Application: `CreateGuest`, `AdoptLegacyGuest`, `RecordGuestActivity`

@@ -3,8 +3,9 @@ using System.Text;
 
 public class GuestTokenHasher
 {
-    public byte[] Hash(string token)
+    public GuestTokenHash Hash(string token)
     {
-        return SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return GuestTokenHash.FromBytes(hash);
     }
 }

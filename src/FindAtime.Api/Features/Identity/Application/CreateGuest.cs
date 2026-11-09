@@ -1,20 +1,17 @@
 public class CreateGuest
 {
     private GuestRepository _guestRepository;
-    private GuestTokenGenerator _tokenGenerator;
-    private GuestTokenHasher _tokenHasher;
+    private GuestTokenFactory _tokenFactory;
     private TimeProvider _timeProvider;
 
     public CreateGuest(
         GuestRepository guestRepository,
-        GuestTokenGenerator tokenGenerator,
-        GuestTokenHasher tokenHasher,
+        GuestTokenFactory tokenFactory,
         TimeProvider timeProvider
     )
     {
         this._guestRepository = guestRepository;
-        this._tokenGenerator = tokenGenerator;
-        this._tokenHasher = tokenHasher;
+        this._tokenFactory = tokenFactory;
         this._timeProvider = timeProvider;
     }
 
@@ -25,9 +22,9 @@ public class CreateGuest
 
     internal async Task<CreateGuestResult> CreateWithId(GuestId id)
     {
-        string token = this._tokenGenerator.Generate();
-        var guest = new Guest(id, this._tokenHasher.Hash(token), this._timeProvider.GetUtcNow());
+        GuestTokenCreated token = this._tokenFactory.CreateToken();
+        var guest = new Guest(id, token.Hash, this._timeProvider.GetUtcNow());
         await this._guestRepository.Save(guest);
-        return new CreateGuestResult(token);
+        return new CreateGuestResult(token.Token);
     }
 }

@@ -22,7 +22,7 @@ public class CreateGuestTests : IntegrationTest
     {
         var result = await _createGuest.Execute();
 
-        var guest = await _readGuestService.FindByTokenHash(_hasher.Hash(result.GuestToken));
+        var guest = await _readGuestService.FindByTokenHash(_hasher.Hash(result.GuestToken.Value));
 
         Assert.NotNull(guest);
     }
@@ -34,7 +34,7 @@ public class CreateGuestTests : IntegrationTest
 
         var db = Scope.ServiceProvider.GetRequiredService<DbContext>();
         var guest = Assert.Single(db.Guests);
-        Assert.Equal(_hasher.Hash(result.GuestToken), guest.TokenHash);
+        Assert.Equal(_hasher.Hash(result.GuestToken.Value), guest.TokenHash);
     }
 
     [Fact]
@@ -43,8 +43,8 @@ public class CreateGuestTests : IntegrationTest
         var first = await _createGuest.Execute();
         var second = await _createGuest.Execute();
 
-        var firstGuest = await _readGuestService.FindByTokenHash(_hasher.Hash(first.GuestToken));
-        var secondGuest = await _readGuestService.FindByTokenHash(_hasher.Hash(second.GuestToken));
+        var firstGuest = await _readGuestService.FindByTokenHash(_hasher.Hash(first.GuestToken.Value));
+        var secondGuest = await _readGuestService.FindByTokenHash(_hasher.Hash(second.GuestToken.Value));
 
         Assert.NotEqual(firstGuest!.GuestId, secondGuest!.GuestId);
     }

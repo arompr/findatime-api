@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<GuestTokenGenerator>();
         services.AddSingleton<GuestTokenHasher>();
+        services.AddSingleton<GuestTokenFactory>();
         services.AddScoped<GuestRepository>();
         services.AddScoped<ReadGuestService>();
         services.AddScoped<CreateGuest>();

@@ -38,7 +38,7 @@ public class AdoptLegacyGuestTests : IntegrationTest
 
         var result = await _adoptLegacyGuest.Execute(LegacyGuestId);
 
-        var guestId = await ResolveGuestId(result.GuestToken);
+        var guestId = await ResolveGuestId(result.GuestToken.Value);
         Assert.Equal(LegacyGuestId, guestId);
 
         var events = await _readEventService.SearchEvents(guestId);
@@ -63,7 +63,7 @@ public class AdoptLegacyGuestTests : IntegrationTest
     {
         var result = await _adoptLegacyGuest.Execute(LegacyGuestId);
 
-        var guestId = await ResolveGuestId(result.GuestToken);
+        var guestId = await ResolveGuestId(result.GuestToken.Value);
         Assert.NotEqual(LegacyGuestId, guestId);
     }
 }

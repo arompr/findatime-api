@@ -7,7 +7,7 @@ public class GuestTokenHasherTests
     [Fact]
     public void Hash_ShouldReturn32Bytes()
     {
-        Assert.Equal(32, _hasher.Hash("token").Length);
+        Assert.Equal(32, _hasher.Hash("token").Value.Length);
     }
 
     [Fact]

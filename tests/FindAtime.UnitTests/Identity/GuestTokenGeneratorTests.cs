@@ -9,7 +9,7 @@ public class GuestTokenGeneratorTests
     [Fact]
     public void Generate_ShouldReturnBase64UrlTokenOf32Bytes()
     {
-        var token = _generator.Generate();
+        var token = _generator.Generate().Value;
 
         Assert.Equal(43, token.Length);
         Assert.Matches(new Regex("^[A-Za-z0-9_-]+$"), token);
@@ -18,7 +18,7 @@ public class GuestTokenGeneratorTests
     [Fact]
     public void Generate_ShouldReturnUniqueTokens()
     {
-        var tokens = Enumerable.Range(0, 1000).Select(_ => _generator.Generate()).ToList();
+        var tokens = Enumerable.Range(0, 1000).Select(_ => _generator.Generate().Value).ToList();
 
         Assert.Equal(tokens.Count, tokens.Distinct().Count());
     }

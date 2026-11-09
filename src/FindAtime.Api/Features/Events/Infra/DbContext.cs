@@ -81,6 +81,10 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
                 id => Guid.Parse(id.Value),
                 value => GuestId.FromString(value.ToString()));
 
+            entity.Property(g => g.TokenHash).HasConversion(
+                hash => hash.Value,
+                value => GuestTokenHash.FromBytes(value));
+
             entity.HasKey(g => g.Id);
             entity.HasIndex(g => g.TokenHash).IsUnique();
         });

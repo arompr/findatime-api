@@ -5,7 +5,7 @@ public class GuestTests
     private static readonly DateTimeOffset CreatedAt = new(2026, 11, 9, 12, 0, 0, TimeSpan.Zero);
 
     private static Guest NewGuest() =>
-        new(GuestId.FromString(Guid.NewGuid().ToString()), [1, 2, 3], CreatedAt);
+        new(GuestId.FromString(Guid.NewGuid().ToString()), GuestTokenHash.FromBytes([1, 2, 3]), CreatedAt);
 
     [Fact]
     public void MarkSeen_ShouldKeepLastSeenWithinTheResolution()

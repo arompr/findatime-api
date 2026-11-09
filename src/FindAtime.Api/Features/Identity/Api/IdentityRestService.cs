@@ -29,7 +29,7 @@ public static class IdentityRestService
                         result = await createGuest.Execute();
                     }
 
-                    return Results.Json(new CreateGuestResponse(result.GuestToken), statusCode: StatusCodes.Status201Created);
+                    return Results.Json(new CreateGuestResponse(result.GuestToken.Value), statusCode: StatusCodes.Status201Created);
                 }
             )
             .WithName("CreateGuest")

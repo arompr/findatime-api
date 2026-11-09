@@ -11,12 +11,12 @@ public class ReadGuestService
         _connectionProvider = connectionProvider;
     }
 
-    public async Task<GuestDto?> FindByTokenHash(byte[] tokenHash)
+    public async Task<GuestDto?> FindByTokenHash(GuestTokenHash tokenHash)
     {
         var connection = await _connectionProvider.OpenAsync();
 
         await using var reader = await connection.ExecuteReaderAsync(
-            GetGuestByTokenHashSql, new { tokenHash });
+            GetGuestByTokenHashSql, new { tokenHash = tokenHash.Value });
 
         if (!await reader.ReadAsync())
             return null;

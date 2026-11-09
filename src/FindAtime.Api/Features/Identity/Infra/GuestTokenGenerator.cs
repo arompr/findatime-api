@@ -3,10 +3,9 @@ using Microsoft.AspNetCore.WebUtilities;
 
 public class GuestTokenGenerator
 {
-    public const int TokenBytes = 32;
-
-    public string Generate()
+    public GuestToken Generate()
     {
-        return WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(TokenBytes));
+        byte[] bytes = RandomNumberGenerator.GetBytes(GuestTokenPolicy.TokenBytes);
+        return GuestToken.FromString(WebEncoders.Base64UrlEncode(bytes));
     }
 }

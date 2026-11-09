@@ -22,7 +22,7 @@ public class RecordGuestActivityTests : IntegrationTest
     public async Task Execute_ShouldPersistLastSeenOnceTheResolutionHasElapsed()
     {
         var staleAt = DateTimeOffset.UtcNow - Guest.LastSeenResolution - TimeSpan.FromMinutes(1);
-        var guest = new Guest(GuestId.FromString(Guid.NewGuid().ToString()), [7, 7, 7], staleAt);
+        var guest = new Guest(GuestId.FromString(Guid.NewGuid().ToString()), GuestTokenHash.FromBytes([7, 7, 7]), staleAt);
         await _guestRepository.Save(guest);
 
         await _recordGuestActivity.Execute(guest.Id);
