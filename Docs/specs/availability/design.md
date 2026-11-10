@@ -46,7 +46,7 @@ offset-less values with `InvalidAvailabilityRangeException` and normalizes to
 UTC.
 
 The calling participant is resolved via
-`GET /events/{publicId}/participant` (using the `X-Guest-Id` header).
+`GET /events/{publicId}/participant` (from the caller's guest token).
 
 Reads are plain `GET`s with no body: `GET /events/{publicId}/availabilities`
 (all) and `GET /events/{publicId}/participants/{participantId}/availability`
@@ -90,7 +90,11 @@ migration: `Project` re-snaps them in the event frame on read.
 - Bounds must be ISO 8601 instants with an explicit offset; a malformed or
   offset-less value is `invalid_availability_range`.
 - Participant must belong to the specified event.
-- The `X-Guest-Id` header must match the participant's guest id.
+- The caller's guest id (from the token) must match the participant's guest id.
+- Reads require the caller to be a participant of the event: both read use
+  cases take the caller's guest id and check it with
+  `ReadAvailabilityService.GetParticipantByEventAndGuest` after the event lookup
+  (404 before 403).
 
 ## Application Flow
 

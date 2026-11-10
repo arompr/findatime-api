@@ -1,1 +1,1 @@
-public record JoinEventRequestParams(string? Passcode, string GuestId, string ParticipantName, string Timezone);
+public record JoinEventRequestParams(string? Passcode, string ParticipantName, string Timezone);

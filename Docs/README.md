@@ -9,11 +9,14 @@ Each feature folder holds three files — `requirements.md` (enduring product
 intent), `spec.md` (authoritative current behavior), and `design.md`
 (authoritative current architecture).
 
+- [Identity](specs/identity/) — server-issued guest tokens
+  (`Authorization: Guest <token>`) that identify the caller, legacy guest-id
+  adoption, and rate limiting.
 - [Events](specs/events/) — create a shareable event and become its organizer;
   participants join (optionally behind a passcode) or leave, and are identified
-  by a per-browser guest id.
+  by their guest token.
 - [Availability](specs/availability/) — participants mark the time ranges they
-  are free; organizers view everyone's availability to pick a slot.
+  are free and see everyone's availability to pick a slot (participants only).
 
 ## Workflow
 

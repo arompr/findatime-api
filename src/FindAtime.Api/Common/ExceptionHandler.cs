@@ -14,6 +14,7 @@ public sealed class ExceptionHandler : IExceptionHandler
         [typeof(InvalidIntervalException)] = (StatusCodes.Status400BadRequest, "invalid_interval"),
         [typeof(InvalidDayWindowException)] = (StatusCodes.Status400BadRequest, "invalid_day_window"),
         [typeof(ForbiddenException)] = (StatusCodes.Status403Forbidden, "forbidden"),
+        [typeof(GuestAlreadyClaimedException)] = (StatusCodes.Status409Conflict, "guest_already_claimed"),
     };
 
     public async ValueTask<bool> TryHandleAsync(

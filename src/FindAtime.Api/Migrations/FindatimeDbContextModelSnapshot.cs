@@ -16,7 +16,7 @@ partial class FindatimeDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261108220129_AddEventDayWindow";
+    public override string LastMigrationId => "20261109232925_AddGuests";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -130,6 +130,33 @@ partial class FindatimeDbContextModelSnapshot : ModelSnapshot
                     {
                         t.HasCheckConstraint("ck_events_day_window", "\"day_start_hour\" >= 0 AND \"day_end_hour\" <= 24 AND \"day_start_hour\" < \"day_end_hour\"");
                     });
+            });
+
+        modelBuilder.Entity("Guest", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTimeOffset>("LastSeenAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("last_seen_at");
+
+                b.Property<byte[]>("TokenHash")
+                    .IsRequired()
+                    .HasColumnType("bytea")
+                    .HasColumnName("token_hash");
+
+                b.HasKey("Id");
+
+                b.HasIndex("TokenHash")
+                    .IsUnique();
+
+                b.ToTable("guests");
             });
 
         modelBuilder.Entity("Participant", b =>

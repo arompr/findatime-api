@@ -59,6 +59,77 @@ public class OpenApiDocumentTests : IDisposable
         Assert.False(Schema(schema).GetProperty("properties").TryGetProperty("timezone", out _));
     }
 
+    [Fact]
+    public void GuestSecurityScheme_ShouldBeAnAuthorizationHeaderApiKey()
+    {
+        var scheme = _document.RootElement
+            .GetProperty("components")
+            .GetProperty("securitySchemes")
+            .GetProperty("Guest");
+
+        Assert.Equal("apiKey", scheme.GetProperty("type").GetString());
+        Assert.Equal("header", scheme.GetProperty("in").GetString());
+        Assert.Equal("Authorization", scheme.GetProperty("name").GetString());
+    }
+
+    [Theory]
+    [InlineData("/events", "post")]
+    [InlineData("/events", "get")]
+    [InlineData("/events/{publicId}", "delete")]
+    [InlineData("/events/{publicId}/params", "put")]
+    [InlineData("/events/{publicId}/join", "post")]
+    [InlineData("/events/{publicId}/leave", "post")]
+    [InlineData("/events/{publicId}/participant", "get")]
+    [InlineData("/events/{publicId}/availabilities", "get")]
+    [InlineData("/events/{publicId}/participants/{participantId}/availability", "get")]
+    [InlineData("/events/{publicId}/participants/{participantId}/availability", "put")]
+    public void AuthenticatedOperations_ShouldRequireGuestScheme(string path, string method)
+    {
+        var operation = PathItem(path).GetProperty(method);
+
+        var security = operation.GetProperty("security");
+        Assert.Contains(security.EnumerateArray(), requirement => requirement.TryGetProperty("Guest", out _));
+    }
+
+    [Theory]
+    [InlineData("/events/{publicId}", "get")]
+    [InlineData("/guests", "post")]
+    public void PublicOperations_ShouldNotRequireAuthentication(string path, string method)
+    {
+        var operation = PathItem(path).GetProperty(method);
+
+        Assert.False(operation.TryGetProperty("security", out _));
+    }
+
+    [Theory]
+    [InlineData("CreateEventRequestParams")]
+    [InlineData("JoinEventRequestParams")]
+    public void RequestSchemas_ShouldNotCarryGuestId(string schema)
+    {
+        Assert.False(Schema(schema).GetProperty("properties").TryGetProperty("guestId", out _));
+    }
+
+    [Fact]
+    public void SearchEvents_ShouldNotTakeGuestIdQuery()
+    {
+        var operation = PathItem("/events").GetProperty("get");
+
+        bool hasGuestIdParameter = operation.TryGetProperty("parameters", out var parameters)
+            && parameters.EnumerateArray().Any(p => p.GetProperty("name").GetString() == "guestId");
+        Assert.False(hasGuestIdParameter);
+    }
+
+    [Fact]
+    public void CreateGuestResponse_ShouldOnlyExposeTheToken()
+    {
+        var properties = Schema("CreateGuestResponse").GetProperty("properties")
+            .EnumerateObject()
+            .Select(p => p.Name)
+            .ToList();
+
+        Assert.Equal(["guestToken"], properties);
+    }
+
     private JsonElement PathItem(string path) =>
         _document.RootElement.GetProperty("paths").GetProperty(path);
 

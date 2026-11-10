@@ -54,9 +54,9 @@ WHEN the participant does not belong to that event THEN THE SYSTEM SHALL respond
 **Priority:** P0
 **Persona:** participant
 
-WHEN a request supplies a valid guest id header for an event THEN THE SYSTEM SHALL return the participant id and name for that guest
+WHEN an authenticated guest asks for their participant in an event THEN THE SYSTEM SHALL return the participant id and name for that guest
 WHEN the guest has not joined the event THEN THE SYSTEM SHALL respond not found
-WHEN the guest id header is missing or malformed THEN THE SYSTEM SHALL respond bad request
+WHEN the request carries no valid guest token THEN THE SYSTEM SHALL respond unauthorized
 
 ### FR-002: Replace a participant's availability
 **Priority:** P0
@@ -99,7 +99,8 @@ projected instants.
 ## Non-Functional Requirements
 
 ### NFR-001: Access control
-The only access control is the shareable public id plus the per-browser guest id;
+Access control is the shareable public id plus the server-issued guest token;
+only participants can read an event's availability;
 there is no real authentication in this MVP.
 
 ### NFR-002: Timezone transparency
@@ -114,4 +115,4 @@ participants.
   but does not suggest a common slot or analyze overlaps.
 - Overlap validation: the server enforces end-after-start and a 24-hour maximum
   duration only; it does not reject overlapping ranges.
-- Real authentication beyond the public id + guest id trust model.
+- User accounts beyond the guest-token model.

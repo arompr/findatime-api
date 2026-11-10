@@ -97,11 +97,16 @@ responses carry no interval or timezone field.
 
 ## API
 
+Every availability endpoint requires `Authorization: Guest <token>` (401
+`unauthorized` otherwise), and the caller must be a participant of the event:
+reads by a guest who has not joined answer 403 `forbidden` (404
+`event_not_found` still wins for an unknown event).
+
 ### Resolve the calling participant
 `GET /events/{publicId}/participant`
 
-Returns the participant id and name for the calling guest. Requires an
-`X-Guest-Id` header.
+Returns the participant id and name for the calling guest; 404
+`participant_not_found` when the guest has not joined.
 
 ### List event availability
 `GET /events/{publicId}/availabilities`
@@ -131,5 +136,5 @@ instants. Reads later project them onto the interval current at read time.
 
 400 `invalid_availability_range` when a bound is malformed or has no offset
 (e.g. `2026-11-03T14:00:00`), when a range's end is not after its start, or when
-a snapped range exceeds 24 hours. Requires an `X-Guest-Id` header that must
-match the participant's guest id (403 otherwise).
+a snapped range exceeds 24 hours. The caller must be that participant (403
+otherwise).

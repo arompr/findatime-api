@@ -3,4 +3,5 @@ public static class TestEvents
     public const string Name = "Team Meeting";
     public const string OrganizerGuestId = "11111111-1111-1111-1111-111111111111";
     public const string OrganizerName = "Alice";
+    public static readonly Guid OrganizerGuid = Guid.Parse(OrganizerGuestId);
 }

@@ -69,12 +69,18 @@ iterations 100,000, 16-byte salt, and 32-byte hash. `PasscodeFactory` returns a
 ## API
 
 - `POST /events` → 201 `{ publicId, isPasscodeProtected, passcode? }`
-- `GET /events?guestId=` → 200 `{ events: [{ publicId, name, isOrganizer }] }`
+- `GET /events` → 200 `{ events: [{ publicId, name, isOrganizer }] }`
 - `GET /events/{publicId}` → 200 `{ publicId, name, isPasscodeProtected, timezone, intervalMinutes }`
 - `PUT /events/{publicId}/params` → 200 `{ timezone, intervalMinutes }` (organizer-only, full-replace over both fields)
 - `POST /events/{publicId}/join` → 201 `{ participantId, name }` (requires `timezone`)
 - `POST /events/{publicId}/leave` → 204
 - `DELETE /events/{publicId}` → 204 (organizer-only, no body; removes the event, its participants, and their availability)
+
+Every endpoint except `GET /events/{publicId}` calls `.RequireAuthorization()`
+and takes the caller from `ClaimsPrincipal.GetGuestId()` (see
+[Identity design](../identity/design.md)); use cases still receive the guest id
+as a `string`/`Guid` argument. `POST /events/{publicId}/join` also carries the
+`join` rate-limit policy.
 
 All endpoints address an event by its shareable `publicId`; the internal UUID is
 never exposed to clients. Request-shape validation (malformed uuid, blank
@@ -90,10 +96,7 @@ exceptions mapped in `Common/ExceptionHandler`:
 `InvalidIntervalException` → 400 `invalid_interval`,
 `ForbiddenException` → 403 `forbidden`.
 
-The delete endpoint parses `X-Guest-Id` with the same inline
-`Results.BadRequest` block as the params endpoint (missing or blank → "X-Guest-Id
-header is required", non-uuid → "X-Guest-Id header must be a valid uuid") before
-any lookup, and answers `Results.NoContent()`. It introduces no new exception
+The delete endpoint answers `Results.NoContent()`. It introduces no new exception
 type or error code: the existing `EventNotFoundException` (404
 `event_not_found`) and `ForbiddenException` (403 `forbidden`) mappings cover its
 failures. Deletion is not idempotent — a second delete finds no event and returns
@@ -153,7 +156,7 @@ for reads): participant counts are small.
 
 ## Validation
 
-- `guestId` must be a valid UUID (create/join/leave/search).
+- Every endpoint but `GET /events/{publicId}` requires a valid guest token (401).
 - `organizerName` (create) and `participantName` (join) are required.
 - `timezone` (join and params) must be a known IANA id; unknown ids are rejected
   as `invalid_timezone`.
@@ -165,9 +168,7 @@ for reads): participant counts are small.
 - A protected event requires a matching passcode to join.
 - A guest may join an event only once.
 - The organizer cannot leave their own event.
-- Only the organizer may delete an event; a valid `X-Guest-Id` header is
-  required, and a missing, blank, or malformed one is a request-shape 400 before
-  any lookup.
+- Only the organizer may delete an event.
 - Deleting an event requires no passcode and succeeds regardless of how many
   participants are still joined.
 

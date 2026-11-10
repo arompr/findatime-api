@@ -32,6 +32,7 @@
     <EmbeddedResource Include="Features\Availability\Infra\Read\get_participant_by_event_and_guest.sql" />
     <EmbeddedResource Include="Features\Availability\Infra\Read\get_event_availabilities.sql" />
     <EmbeddedResource Include="Features\Availability\Infra\Read\get_participant_availability.sql" />
+    <EmbeddedResource Include="Features\Identity\Infra\Read\get_guest_by_token_hash.sql" />
   </ItemGroup>
 
 </Project>

@@ -7,32 +7,54 @@
 # come from captures in the entries before them.)
 #
 # Entries:
-#   1  POST   /events
-#   2  PUT    /events/{publicId}/params (organizer anchors the event to Europe/Berlin)
-#   3  POST   /events/{publicId}/join
-#   4  GET    /events/{publicId}/participant
-#   5  GET    /events/{publicId}/availabilities
-#   6  GET    /events/{publicId}/participants/{participantId}/availability
-#   7  PUT    /events/{publicId}/participants/{participantId}/availability (snaps outward on the event's 30-min grid)
-#   8  PUT    /events/{publicId}/participants/{participantId}/availability (range without a UTC offset -> 400)
-#   9  PUT    /events/{publicId}/params (organizer switches the interval to 60)
-#  10  GET    /events/{publicId}/participants/{participantId}/availability (projects onto the 60-min grid)
-#  11  GET    /events/{publicId}/availabilities (projects onto the 60-min grid)
+#   1  POST   /guests (organizer token)
+#   2  POST   /guests (participant token)
+#   3  POST   /guests (outsider token: never joins)
+#   4  POST   /events
+#   5  PUT    /events/{publicId}/params (organizer anchors the event to Europe/Berlin)
+#   6  POST   /events/{publicId}/join
+#   7  GET    /events/{publicId}/participant
+#   8  GET    /events/{publicId}/availabilities
+#   9  GET    /events/{publicId}/availabilities (outsider -> 403)
+#  10  GET    /events/{publicId}/participants/{participantId}/availability
+#  11  GET    /events/{publicId}/participants/{participantId}/availability (outsider -> 403)
+#  12  PUT    /events/{publicId}/participants/{participantId}/availability (snaps outward on the event's 30-min grid)
+#  13  PUT    /events/{publicId}/participants/{participantId}/availability (range without a UTC offset -> 400)
+#  14  PUT    /events/{publicId}/participants/{participantId}/availability (organizer writing someone else's -> 403)
+#  15  PUT    /events/{publicId}/params (organizer switches the interval to 60)
+#  16  GET    /events/{publicId}/participants/{participantId}/availability (projects onto the 60-min grid)
+#  17  GET    /events/{publicId}/availabilities (projects onto the 60-min grid)
 #
-# Static variables are defined in the first entry's [Options] and inherited by
-# the entries that follow. The first entries set up the event and participant
-# the later calls operate on: the event's publicId and the participant's id are
-# captured from responses. Availability is exchanged as UTC instants; the server
-# snaps writes and projects reads on the event's grid in the event timezone.
+# Every call authenticates with `Authorization: Guest <token>`; tokens come from
+# POST /guests. Availability reads are limited to the event's participants. The
+# event's publicId and the participant's id are captured from responses.
+# Availability is exchanged as UTC instants; the server snaps writes and
+# projects reads on the event's grid in the event timezone.
 
-POST {{baseUrl}}/events
+POST {{baseUrl}}/guests
 [Options]
 variable: baseUrl="http://localhost:5263"
-variable: organizerGuestId="4a7b3c2d-1e2f-3a4b-5c6d-7e8f9a0b1c2d"
-variable: participantGuestId="9c8d7e6f-5a4b-3c2d-1e0f-9a8b7c6d5e4f"
+
+HTTP 201
+[Captures]
+organizerToken: jsonpath "$.guestToken"
+
+POST {{baseUrl}}/guests
+
+HTTP 201
+[Captures]
+participantToken: jsonpath "$.guestToken"
+
+POST {{baseUrl}}/guests
+
+HTTP 201
+[Captures]
+outsiderToken: jsonpath "$.guestToken"
+
+POST {{baseUrl}}/events
+Authorization: Guest {{organizerToken}}
 {
     "name": "Saturday Night Local",
-    "guestId": "{{organizerGuestId}}",
     "organizerName": "Alice",
     "isPasscodeProtected": false
 }
@@ -43,7 +65,7 @@ publicId: jsonpath "$.publicId"
 
 # Anchor the event to Europe/Berlin (UTC+2 in September) on the default 30-min grid
 PUT {{baseUrl}}/events/{{publicId}}/params
-X-Guest-Id: {{organizerGuestId}}
+Authorization: Guest {{organizerToken}}
 {
   "timezone": "Europe/Berlin",
   "intervalMinutes": 30,
@@ -55,8 +77,8 @@ HTTP 200
 
 # Join as the participant whose availability is read and written below
 POST {{baseUrl}}/events/{{publicId}}/join
+Authorization: Guest {{participantToken}}
 {
-    "guestId": "{{participantGuestId}}",
     "participantName": "Bob",
     "timezone": "America/New_York"
 }
@@ -67,21 +89,37 @@ participantId: jsonpath "$.participantId"
 
 # Resolve the calling participant
 GET {{baseUrl}}/events/{{publicId}}/participant
-X-Guest-Id: {{participantGuestId}}
+Authorization: Guest {{participantToken}}
 
 HTTP 200
 
 # List event availability (UTC instants)
 GET {{baseUrl}}/events/{{publicId}}/availabilities
+Authorization: Guest {{participantToken}}
 
 HTTP 200
 [Asserts]
 jsonpath "$.timezone" not exists
 
+# A guest who has not joined cannot read the event's availability
+GET {{baseUrl}}/events/{{publicId}}/availabilities
+Authorization: Guest {{outsiderToken}}
+
+HTTP 403
+[Asserts]
+jsonpath "$.error" == "forbidden"
+
 # Read one participant's availability
 GET {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
+Authorization: Guest {{participantToken}}
 
 HTTP 200
+
+# ...not as an outsider
+GET {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
+Authorization: Guest {{outsiderToken}}
+
+HTTP 403
 
 # Replace one participant's availability (ISO 8601 instants with an offset; the
 # misaligned 16:05-16:50Z (18:05-18:50 Berlin) range is widened on the Berlin
@@ -89,7 +127,7 @@ HTTP 200
 # and 09:30-10:30Z are aligned to the default 30-min grid; the next entries
 # switch the event to 60 minutes and prove how they are projected.
 PUT {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
-X-Guest-Id: {{participantGuestId}}
+Authorization: Guest {{participantToken}}
 {
   "ranges": [
     { "start": "2026-09-21T06:30:00Z", "end": "2026-09-21T08:00:00Z" },
@@ -110,7 +148,7 @@ jsonpath "$.ranges[2].end" == "2026-09-21T17:00:00+00:00"
 
 # A range without a UTC offset is rejected
 PUT {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
-X-Guest-Id: {{participantGuestId}}
+Authorization: Guest {{participantToken}}
 {
   "ranges": [
     { "start": "2026-09-21T08:30:00", "end": "2026-09-21T10:00:00" }
@@ -121,9 +159,20 @@ HTTP 400
 [Asserts]
 jsonpath "$.error" == "invalid_availability_range"
 
+# The organizer cannot overwrite another participant's availability
+PUT {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
+Authorization: Guest {{organizerToken}}
+{
+  "ranges": []
+}
+
+HTTP 403
+[Asserts]
+jsonpath "$.error" == "forbidden"
+
 # The organizer switches the event to 1-hour slots
 PUT {{baseUrl}}/events/{{publicId}}/params
-X-Guest-Id: {{organizerGuestId}}
+Authorization: Guest {{organizerToken}}
 {
   "timezone": "Europe/Berlin",
   "intervalMinutes": 60,
@@ -139,6 +188,7 @@ jsonpath "$.intervalMinutes" == 60
 # (08:30-10:00 Berlin) becomes 07:00-08:00Z, 09:30-10:30Z covers no full hour and
 # disappears, 16:00-17:00Z is already aligned
 GET {{baseUrl}}/events/{{publicId}}/participants/{{participantId}}/availability
+Authorization: Guest {{participantToken}}
 
 HTTP 200
 [Asserts]
@@ -151,6 +201,7 @@ jsonpath "$.ranges[1].end" == "2026-09-21T17:00:00+00:00"
 # The event-wide read applies the same projection (participants ordered by name:
 # Alice, then Bob)
 GET {{baseUrl}}/events/{{publicId}}/availabilities
+Authorization: Guest {{organizerToken}}
 
 HTTP 200
 [Asserts]

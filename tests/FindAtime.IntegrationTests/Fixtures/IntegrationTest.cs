@@ -48,6 +48,15 @@ public abstract class IntegrationTest : IAsyncLifetime
         services.AddScoped<GetEventAvailabilities>();
         services.AddScoped<GetParticipantAvailability>();
         services.AddScoped<SetAvailability>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<GuestTokenGenerator>();
+        services.AddSingleton<GuestTokenHasher>();
+        services.AddSingleton<GuestTokenFactory>();
+        services.AddScoped<GuestRepository>();
+        services.AddScoped<ReadGuestService>();
+        services.AddScoped<CreateGuest>();
+        services.AddScoped<AdoptLegacyGuest>();
+        services.AddScoped<RecordGuestActivity>();
 
         _provider = services.BuildServiceProvider();
         Scope = _provider.CreateScope();

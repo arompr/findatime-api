@@ -5,6 +5,7 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<Event> Events { get; set; }
     public DbSet<Participant> Participants { get; set; }
     public DbSet<Availability> Availabilities { get; set; }
+    public DbSet<Guest> Guests { get; set; }
 
     public DbContext(DbContextOptions<DbContext> options)
         : base(options) { }
@@ -72,6 +73,20 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
                 value => EventId.FromString(value.ToString()));
 
             entity.HasIndex(p => new { p.EventId, p.GuestId }).IsUnique();
+        });
+
+        modelBuilder.Entity<Guest>(entity =>
+        {
+            entity.Property(g => g.Id).HasConversion(
+                id => Guid.Parse(id.Value),
+                value => GuestId.FromString(value.ToString()));
+
+            entity.Property(g => g.TokenHash).HasConversion(
+                hash => hash.Value,
+                value => GuestTokenHash.FromBytes(value));
+
+            entity.HasKey(g => g.Id);
+            entity.HasIndex(g => g.TokenHash).IsUnique();
         });
 
         modelBuilder.Entity<Availability>(entity =>

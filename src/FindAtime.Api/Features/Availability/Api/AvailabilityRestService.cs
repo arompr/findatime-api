@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 
 public static class AvailabilityRestService
 {
@@ -6,32 +7,27 @@ public static class AvailabilityRestService
     {
         app.MapGet(
                 "/events/{publicId}/participant",
-                async (string publicId, HttpContext httpContext, GetMyParticipant getMyParticipant) =>
+                async (string publicId, ClaimsPrincipal user, GetMyParticipant getMyParticipant) =>
                 {
-                    string? guestId = httpContext.Request.Headers["X-Guest-Id"].FirstOrDefault();
-                    if (string.IsNullOrWhiteSpace(guestId))
-                        return Results.BadRequest("X-Guest-Id header is required");
-
-                    if (!Guid.TryParse(guestId, out var parsedGuestId))
-                        return Results.BadRequest("X-Guest-Id header must be a valid uuid");
-
-                    GetMyParticipantResult result = await getMyParticipant.Execute(publicId, parsedGuestId);
+                    GetMyParticipantResult result = await getMyParticipant.Execute(publicId, user.GetGuestId());
 
                     return Results.Ok(new GetMyParticipantResponse(result.ParticipantId, result.Name));
                 }
             )
             .WithName("GetMyParticipant")
+            .RequireAuthorization()
             .Produces<GetMyParticipantResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapGet(
                 "/events/{publicId}/availabilities",
-                async (string publicId, GetEventAvailabilities getEventAvailabilities) =>
+                async (string publicId, ClaimsPrincipal user, GetEventAvailabilities getEventAvailabilities) =>
                 {
                     if (string.IsNullOrWhiteSpace(publicId))
                         return Results.BadRequest("publicId is required");
 
-                    GetEventAvailabilitiesResult result = await getEventAvailabilities.Execute(publicId);
+                    GetEventAvailabilitiesResult result = await getEventAvailabilities.Execute(publicId, user.GetGuestId());
 
                     return Results.Ok(new GetEventAvailabilitiesResponse(
                         result.Participants
@@ -47,13 +43,16 @@ public static class AvailabilityRestService
                 }
             )
             .WithName("GetEventAvailabilities")
+            .RequireAuthorization()
             .Produces<GetEventAvailabilitiesResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapGet(
                 "/events/{publicId}/participants/{participantId}/availability",
-                async (string publicId, string participantId, GetParticipantAvailability getParticipantAvailability) =>
+                async (string publicId, string participantId, ClaimsPrincipal user, GetParticipantAvailability getParticipantAvailability) =>
                 {
                     if (string.IsNullOrWhiteSpace(publicId))
                         return Results.BadRequest("publicId is required");
@@ -61,7 +60,7 @@ public static class AvailabilityRestService
                     if (!Guid.TryParse(participantId, out var parsedParticipantId))
                         return Results.BadRequest("participantId must be a valid uuid");
 
-                    ParticipantAvailabilityResult result = await getParticipantAvailability.Execute(publicId, parsedParticipantId);
+                    ParticipantAvailabilityResult result = await getParticipantAvailability.Execute(publicId, parsedParticipantId, user.GetGuestId());
 
                     return Results.Ok(new GetParticipantAvailabilityResponse(
                         result.ParticipantId,
@@ -73,8 +72,11 @@ public static class AvailabilityRestService
                 }
             )
             .WithName("GetParticipantAvailability")
+            .RequireAuthorization()
             .Produces<GetParticipantAvailabilityResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
 
         app.MapPut(
@@ -83,17 +85,10 @@ public static class AvailabilityRestService
                     string publicId,
                     string participantId,
                     SetAvailabilityRequest request,
-                    HttpContext httpContext,
+                    ClaimsPrincipal user,
                     SetAvailability setAvailability
                 ) =>
                 {
-                    string? guestId = httpContext.Request.Headers["X-Guest-Id"].FirstOrDefault();
-                    if (string.IsNullOrWhiteSpace(guestId))
-                        return Results.BadRequest("X-Guest-Id header is required");
-
-                    if (!Guid.TryParse(guestId, out var parsedGuestId))
-                        return Results.BadRequest("X-Guest-Id header must be a valid uuid");
-
                     if (string.IsNullOrWhiteSpace(publicId))
                         return Results.BadRequest("publicId is required");
 
@@ -105,7 +100,7 @@ public static class AvailabilityRestService
                     SetAvailabilityResult result = await setAvailability.Execute(
                         publicId,
                         parsedParticipantId,
-                        parsedGuestId,
+                        user.GetGuestId(),
                         ranges
                             .Select(r => (Start: ParseInstant(r.Start), End: ParseInstant(r.End)))
                             .ToList()
@@ -121,8 +116,10 @@ public static class AvailabilityRestService
                 }
             )
             .WithName("SetAvailability")
+            .RequireAuthorization()
             .Produces<SetAvailabilityResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
     }
