@@ -1,5 +1,6 @@
 import {
   createEvent,
+  createGuest,
   deleteEvent,
   getEvent,
   getEventAvailabilities,
@@ -16,6 +17,7 @@ import {
 export { client } from "./generated/client.gen";
 
 export const FindAtimeApi = {
+  createGuest,
   createEvent,
   searchEvents,
   getEvent,
